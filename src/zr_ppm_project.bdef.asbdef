@@ -1,0 +1,51 @@
+managed implementation in class ZBP_R_PPM_PROJECT unique;
+strict ( 2 );
+with draft;
+extensible;
+define behavior for ZR_PPM_PROJECT alias Project
+persistent table ZPPM_PROJECT_A
+extensible
+draft table ZPPM_PROJECT_D
+etag master LocalLastChangedAt
+lock master total etag LastChangedAt
+authorization master( global )
+{
+  field ( readonly )
+   ProjectUUID,
+   CreatedBy,
+   CreatedAt,
+   LocalLastChangedBy,
+   LocalLastChangedAt,
+   LastChangedAt;
+
+  field ( numbering : managed )
+   ProjectUUID;
+
+
+  create;
+  update;
+  delete;
+
+  draft action Activate optimized;
+  draft action Discard;
+  draft action Edit;
+  draft action Resume;
+  draft determine action Prepare;
+
+  mapping for ZPPM_PROJECT_A corresponding extensible
+  {
+    ProjectUUID = PROJECT_UUID;
+    ProjectID = PROJECT_ID;
+    ProjectName = PROJECT_NAME;
+    Description = DESCRIPTION;
+    StartDate = START_DATE;
+    EndDate = END_DATE;
+    Status = STATUS;
+    CreatedBy = CREATED_BY;
+    CreatedAt = CREATED_AT;
+    LocalLastChangedBy = LOCAL_LAST_CHANGED_BY;
+    LocalLastChangedAt = LOCAL_LAST_CHANGED_AT;
+    LastChangedAt = LAST_CHANGED_AT;
+  }
+
+}
