@@ -1,0 +1,6 @@
+@EndUserText.label: 'ZR_PPM_PROJECT'
+@MappingRole: true
+define role ZR_PPM_PROJECT {
+  grant select on ZR_PPM_PROJECT
+  where TRUE;
+}

@@ -1,0 +1,6 @@
+@EndUserText.label: 'ZC_PPM_PROJECT'
+@MappingRole: true
+define role ZC_PPM_PROJECT {
+  grant select on ZC_PPM_PROJECT
+  where INHERITING CONDITIONS FROM ENTITY ZR_PPM_PROJECT REPLACING { ROOT WITH _BaseEntity };
+}
