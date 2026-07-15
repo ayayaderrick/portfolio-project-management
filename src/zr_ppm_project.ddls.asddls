@@ -5,6 +5,7 @@
 define root view entity ZR_PPM_PROJECT
   as select from zppm_project_a as Project
   composition [0..*] of ZR_PPM_MILESTONE as _Milestone
+  association [0..1] to ZI_PPM_TASKAGGREGATE as _TaskAggregate on $projection.ProjectUUID = _TaskAggregate.ProjectUUID
 {
   key project_uuid as ProjectUUID,
   project_id as ProjectID,
@@ -24,5 +25,6 @@ define root view entity ZR_PPM_PROJECT
   @Semantics.systemDateTime.lastChangedAt: true
   last_changed_at as LastChangedAt,
   
-  _Milestone
+  _Milestone,
+  _TaskAggregate
 }
