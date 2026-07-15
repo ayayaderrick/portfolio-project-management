@@ -7,14 +7,14 @@ define view entity ZI_PPM_TASKAGGREGATE
     inner join   zppm_milestone_a as Milestone on Task.milestone_uuid = Milestone.milestone_uuid
 {
   key Milestone.project_uuid as ProjectUUID,
-      count( * )             as TotalTasks,
+      count( * )             as ProjectTaskCount,
       sum(
           case
               when Task.status = 'DON'
               then 1
               else 0
           end
-      )                      as CompletedTasks
+      )                      as ProjectCompletedTaskCount
 }
 group by
   Milestone.project_uuid
