@@ -15,6 +15,9 @@ define view entity ZC_PPM_MILESTONE
       SequenceNo,
       DueDate,
       @Consumption.filter.selectionType: #SINGLE
+      @Consumption.valueHelpDefinition: [{
+        entity: { name: 'ZI_PPM_MILESTONESTATUS_VH', element: 'Code' }
+      }]
       Status,
       CreatedBy,
       CreatedAt,

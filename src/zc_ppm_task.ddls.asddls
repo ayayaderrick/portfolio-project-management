@@ -13,8 +13,14 @@ define view entity ZC_PPM_TASK
       TaskName,
       Description,
       AssignedTo,
+      @Consumption.valueHelpDefinition: [{
+        entity: { name: 'ZI_PPM_TASKSTATUS_VH', element: 'Code' }
+      }]
       Priority,
       @Consumption.filter.selectionType: #SINGLE
+      @Consumption.valueHelpDefinition: [{
+        entity: { name: 'ZI_PPM_TASKSTATUS_VH', element: 'Code' }
+      }]
       Status,
       DueDate,
       CreatedBy,
