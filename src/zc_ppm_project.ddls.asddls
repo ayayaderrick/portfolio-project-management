@@ -22,6 +22,9 @@ define root view entity ZC_PPM_PROJECT
       StartDate,
       EndDate,
       @Consumption.filter.selectionType: #SINGLE
+      @Consumption.valueHelpDefinition: [{
+        entity: { name: 'ZI_PPM_PROJECTSTATUS_VH', element: 'Code' }
+      }]
       Status,
       @Semantics: {
         user.createdBy: true
