@@ -12,10 +12,15 @@ define view entity ZI_PPM_CODELIST
       code                  as Code,
       active                as Active,
       sort_order            as SortOrder,
+      @Semantics.user.createdBy: true
       created_by            as CreatedBy,
+      @Semantics.systemDateTime.createdAt: true
       created_at            as CreatedAt,
+      @Semantics.user.localInstanceLastChangedBy: true
       local_last_changed_by as LocalLastChangedBy,
+      @Semantics.systemDateTime.localInstanceLastChangedAt: true
       local_last_changed_at as LocalLastChangedAt,
+      @Semantics.systemDateTime.lastChangedAt: true
       last_changed_at       as LastChangedAt,
 
       _Text

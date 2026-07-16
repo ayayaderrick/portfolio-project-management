@@ -19,10 +19,25 @@ define view entity ZC_PPM_MILESTONE
         entity: { name: 'ZI_PPM_MILESTONESTATUS_VH', element: 'Code' }
       }]
       Status,
+      @Semantics: {
+        user.createdBy: true
+      }
       CreatedBy,
+      @Semantics: {
+        systemDateTime.createdAt: true
+      }
       CreatedAt,
+      @Semantics: {
+        user.localInstanceLastChangedBy: true
+      }
       LocalLastChangedBy,
+      @Semantics: {
+        systemDateTime.localInstanceLastChangedAt: true
+      }
       LocalLastChangedAt,
+      @Semantics: {
+        systemDateTime.lastChangedAt: true
+      }
       LastChangedAt,
       /* Associations */
       _Project : redirected to parent ZC_PPM_PROJECT,
