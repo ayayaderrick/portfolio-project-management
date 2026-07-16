@@ -8,6 +8,7 @@ define view entity ZI_PPM_MILESTONESTATUS_VH
       @UI.hidden: true
   key CodelistUuid,
       Code,
+      SortOrder,
 
       /* Associations */
       _Text.Description as Description
