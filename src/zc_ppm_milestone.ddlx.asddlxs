@@ -1,0 +1,77 @@
+@Metadata.layer: #CORE
+@UI.headerInfo : {
+    typeName: 'Milestone',
+    typeNamePlural: 'Milestones',
+    title : { type: #STANDARD, value: 'MilestoneName' },
+    description : { type: #STANDARD, value : 'MilestoneId' }
+ }
+annotate view ZC_PPM_MILESTONE with
+{
+  @UI.facet: [
+    {
+    label: 'General Information',
+    id: 'General',
+    purpose: #STANDARD,
+    position: 10 ,
+    type: #FIELDGROUP_REFERENCE,
+    targetQualifier : 'General'
+  },
+  {
+    label: 'Schedule',
+    id: 'Schedule',
+    purpose: #STANDARD,
+    position: 20 ,
+    type: #FIELDGROUP_REFERENCE,
+    targetQualifier : 'Schedule'
+  },
+  {
+    label: 'Status',
+    id: 'Status',
+    purpose: #STANDARD,
+    position: 30 ,
+    type: #FIELDGROUP_REFERENCE,
+    targetQualifier : 'Status'
+  },
+  {
+    label: 'Tasks',
+    id: 'Tasks',
+    purpose: #STANDARD,
+    position: 40 ,
+    type: #LINEITEM_REFERENCE,
+    targetElement: '_Task'
+  }
+   ]
+
+
+
+  @UI.lineItem: [{ position: 10 }]
+  @UI.identification: [{ position: 10 }]
+  @UI.selectionField: [{ position: 10 }]
+  @UI.fieldGroup: [{ qualifier: 'General', position: 10 }]
+  MilestoneId;
+
+  @UI.lineItem: [{ position: 20 }]
+  @UI.identification: [{ position: 20 }]
+  @UI.selectionField: [{ position: 20 }]
+  @UI.fieldGroup: [{ qualifier: 'General', position: 20 }]
+  MilestoneName;
+
+  @UI.identification: [{ position: 30 }]
+  @UI.fieldGroup: [{ qualifier: 'General', position: 30 }]
+  Description;
+
+  @UI.lineItem: [{ position: 5 }]
+  @UI.fieldGroup: [{ qualifier: 'General', position: 15 }]
+  SequenceNo;
+
+  @UI.lineItem: [{ position: 30 }]
+  @UI.selectionField: [{ position: 30 }]
+  @UI.fieldGroup: [{ qualifier: 'Schedule', position: 10 }]
+  DueDate;
+
+  @UI.lineItem: [{ position: 40 }]
+  @UI.selectionField: [{ position: 40 }]
+  @UI.fieldGroup: [{ qualifier: 'Status', position: 10 }]
+  Status;
+
+}
