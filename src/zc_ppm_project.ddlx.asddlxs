@@ -1,149 +1,82 @@
 @Metadata.layer: #CORE
-@UI.headerInfo.title.type: #STANDARD
-@UI.headerInfo.title.value: 'ProjectUUID'
-@UI.headerInfo.description.type: #STANDARD
-@UI.headerInfo.description.value: 'ProjectUUID'
+@UI.headerInfo : {
+    typeName: 'Project',
+    typeNamePlural: 'Projects',
+    title : { type: #STANDARD, value: 'ProjectName' },
+    description : { type: #STANDARD, value : 'ProjectId' }
+ }
 annotate view ZC_PPM_PROJECT with
 {
-  @EndUserText.label: 'ProjectUUID'
-  @UI.facet: [ {
-    label: 'General Information', 
-    id: 'GeneralInfo', 
-    purpose: #STANDARD, 
-    position: 10 , 
-    type: #IDENTIFICATION_REFERENCE
-  } ]
-  @UI.identification: [ {
-    position: 10 , 
-    label: 'ProjectUUID'
-  } ]
-  @UI.lineItem: [ {
-    position: 10 , 
-    label: 'ProjectUUID'
-  } ]
-  @UI.selectionField: [ {
-    position: 10 
-  } ]
-  ProjectUUID;
-  
-  @UI.identification: [ {
-    position: 20 
-  } ]
-  @UI.lineItem: [ {
-    position: 20 
-  } ]
-  @UI.selectionField: [ {
-    position: 20 
-  } ]
+  @UI.facet: [
+  {
+    label: 'General Information',
+    id: 'General',
+    purpose: #STANDARD,
+    position: 10 ,
+    type: #FIELDGROUP_REFERENCE,
+    targetQualifier : 'General'
+  },
+  {
+    label: 'Schedule',
+    id: 'Schedule',
+    purpose: #STANDARD,
+    position: 20 ,
+    type: #FIELDGROUP_REFERENCE,
+    targetQualifier : 'Schedule'
+  },
+  {
+    label: 'Progress',
+    id: 'Progress',
+    purpose: #STANDARD,
+    position: 30 ,
+    type: #FIELDGROUP_REFERENCE,
+    targetQualifier : 'Progress'
+  },
+  {
+    label: 'Milestones',
+    id: 'Milestones',
+    purpose: #STANDARD,
+    position: 40 ,
+    type: #LINEITEM_REFERENCE,
+    targetElement: '_Milestone'
+  }
+   ]
+
+  @UI.identification: [ { position: 10 , label: 'ProjectID' } ]
+  @UI.lineItem: [ { position: 10 , label: 'ProjectID', importance: #HIGH } ]
+  @UI.selectionField: [ { position: 10 } ]
+  @UI.fieldGroup: [{ qualifier: 'General', position: 10 }]
   ProjectID;
-  
-  @UI.identification: [ {
-    position: 30 
-  } ]
-  @UI.lineItem: [ {
-    position: 30 
-  } ]
-  @UI.selectionField: [ {
-    position: 30 
-  } ]
+
+  @UI.identification: [ { position: 20 } ]
+  @UI.lineItem: [ { position: 20, importance: #HIGH } ]
+  @UI.selectionField: [ { position: 20 } ]
+  @UI.fieldGroup: [{ qualifier: 'General', position: 20 }]
   ProjectName;
-  
-  @UI.identification: [ {
-    position: 40 
-  } ]
-  @UI.lineItem: [ {
-    position: 40 
-  } ]
-  @UI.selectionField: [ {
-    position: 40 
-  } ]
+
+  @UI.identification: [ { position: 30 } ]
+  @UI.fieldGroup: [{ qualifier: 'General', position: 30 }]
   Description;
-  
-  @UI.identification: [ {
-    position: 50 
-  } ]
-  @UI.lineItem: [ {
-    position: 50 
-  } ]
-  @UI.selectionField: [ {
-    position: 50 
-  } ]
+
+  @UI.identification: [ { position: 40 } ]
+  @UI.lineItem: [ { position: 30 } ]
+  @UI.selectionField: [ { position: 30 } ]
+  @UI.fieldGroup: [{ qualifier: 'Schedule', position: 10 }]
   StartDate;
-  
-  @UI.identification: [ {
-    position: 60 
-  } ]
-  @UI.lineItem: [ {
-    position: 60 
-  } ]
-  @UI.selectionField: [ {
-    position: 60 
-  } ]
+
+  @UI.identification: [ { position: 50 } ]
+  @UI.lineItem: [ { position: 40 } ]
+  @UI.selectionField: [ { position: 40 } ]
+  @UI.fieldGroup: [{ qualifier: 'Schedule', position: 20 }]
   EndDate;
-  
-  @UI.identification: [ {
-    position: 70 
-  } ]
-  @UI.lineItem: [ {
-    position: 70 
-  } ]
-  @UI.selectionField: [ {
-    position: 70 
-  } ]
+
+  @UI.identification: [ { position: 60 } ]
+  @UI.lineItem: [ { position: 50 } ]
+  @UI.selectionField: [ { position: 50 } ]
+  @UI.fieldGroup: [{ qualifier: 'General', position: 40 }]
   Status;
-  
-  @UI.identification: [ {
-    position: 80 
-  } ]
-  @UI.lineItem: [ {
-    position: 80 
-  } ]
-  @UI.selectionField: [ {
-    position: 80 
-  } ]
-  CreatedBy;
-  
-  @UI.identification: [ {
-    position: 90 
-  } ]
-  @UI.lineItem: [ {
-    position: 90 
-  } ]
-  @UI.selectionField: [ {
-    position: 90 
-  } ]
-  CreatedAt;
-  
-  @UI.identification: [ {
-    position: 100 
-  } ]
-  @UI.lineItem: [ {
-    position: 100 
-  } ]
-  @UI.selectionField: [ {
-    position: 100 
-  } ]
-  LocalLastChangedBy;
-  
-  @UI.identification: [ {
-    position: 110 
-  } ]
-  @UI.lineItem: [ {
-    position: 110 
-  } ]
-  @UI.selectionField: [ {
-    position: 110 
-  } ]
-  LocalLastChangedAt;
-  
-  @UI.identification: [ {
-    position: 120 
-  } ]
-  @UI.lineItem: [ {
-    position: 120 
-  } ]
-  @UI.selectionField: [ {
-    position: 120 
-  } ]
-  LastChangedAt;
+
+  @UI.fieldGroup: [{ qualifier: 'Progress', position: 10 }]
+  percentagecomplete;
+
 }
