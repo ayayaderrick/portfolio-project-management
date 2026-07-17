@@ -1,3 +1,4 @@
+@Metadata.allowExtensions: true
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @EndUserText.label: 'Milestones'
 @Metadata.ignorePropagatedAnnotations: true
