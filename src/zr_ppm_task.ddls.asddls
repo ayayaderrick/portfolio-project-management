@@ -4,10 +4,12 @@
 @Metadata.ignorePropagatedAnnotations: true
 define view entity ZR_PPM_TASK
   as select from zppm_task_a
-  association to parent ZR_PPM_MILESTONE as _Milestone on $projection.MilestoneUuid = _Milestone.MilestoneUuid
+  association        to parent ZR_PPM_MILESTONE as _Milestone on $projection.MilestoneUuid = _Milestone.MilestoneUuid
+  association [1..1] to ZR_PPM_PROJECT          as _Project   on $projection.ProjectUuid = _Project.ProjectUUID
 {
   key task_uuid             as TaskUuid,
       milestone_uuid        as MilestoneUuid,
+      project_uuid          as ProjectUuid,
       task_id               as TaskId,
       task_name             as TaskName,
       description           as Description,
@@ -26,5 +28,6 @@ define view entity ZR_PPM_TASK
       @Semantics.systemDateTime.lastChangedAt: true
       last_changed_at       as LastChangedAt,
 
-      _Milestone
+      _Milestone,
+      _Project
 }
