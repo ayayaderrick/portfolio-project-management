@@ -17,4 +17,29 @@ use etag
   use action Resume;
   use action Prepare;
 
+  use association _Milestone {create;}
+
+}
+
+define behavior for ZC_PPM_MILESTONE alias Milestone
+use etag
+{
+  use update;
+  use delete;
+
+
+  use association _Project {}
+  use association _Task {create;}
+
+}
+
+define behavior for ZC_PPM_TASK alias Task
+use etag
+{
+  use update;
+  use delete;
+
+  use association _Project {}
+  use association _Milestone{}
+
 }
