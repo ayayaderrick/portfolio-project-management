@@ -9,6 +9,7 @@ define view entity ZC_PPM_TASK
   key TaskUuid,
       MilestoneUuid,
       @Search.defaultSearchElement: true
+      ProjectUuid,
       TaskId,
       @Search.defaultSearchElement: true
       TaskName,
@@ -45,6 +46,7 @@ define view entity ZC_PPM_TASK
       }
       LastChangedAt,
       /* Associations */
-      _Milestone : redirected to parent ZC_PPM_MILESTONE
+      _Milestone : redirected to parent ZC_PPM_MILESTONE,
+      _Project   : redirected to ZC_PPM_PROJECT
 
 }
