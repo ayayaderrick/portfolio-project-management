@@ -7,7 +7,8 @@ persistent table ZPPM_PROJECT_A
 extensible
 draft table ZPPM_PROJECT_D
 etag master LocalLastChangedAt
-lock master total etag LastChangedAt
+lock master
+total etag LastChangedAt
 authorization master( global )
 {
   field ( readonly )
@@ -55,7 +56,6 @@ authorization master( global )
 define behavior for ZR_PPM_MILESTONE alias Milestone
 persistent table ZPPM_MILESTONE_A
 draft table ZPPM_MILESTOME_D
-etag master LocalLastChangedAt
 lock dependent by _Project
 authorization dependent by _Project
 {
@@ -72,7 +72,7 @@ authorization dependent by _Project
    MilestoneUuid;
 
   association _Project;
-//  association _Task {create;}
+  association _Task {create;}
 
   update;
   delete;
@@ -95,3 +95,48 @@ authorization dependent by _Project
   }
 }
 
+
+define behavior for ZR_PPM_TASK alias Task
+persistent table ZPPM_TASK_A
+draft table ZPPM_TASK_D
+lock dependent by _Project
+authorization dependent by _Project
+{
+  field ( readonly )
+   TaskUuid,
+   MilestoneUuid,
+   ProjectUuid,
+   CreatedBy,
+   CreatedAt,
+   LocalLastChangedBy,
+   LocalLastChangedAt,
+   LastChangedAt;
+
+  field ( numbering : managed )
+   TaskUuid;
+
+  association _Milestone;
+  association _Project;
+
+  update;
+  delete;
+
+  mapping for ZPPM_TASK_A corresponding
+  {
+    TaskUuid = task_uuid;
+    MilestoneUuid = milestone_uuid;
+    ProjectUuid = project_uuid;
+    TaskId = task_id;
+    TaskName = task_name;
+    Description = description;
+    AssignedTo = assigned_to;
+    Priority = priority;
+    Status = status;
+    DueDate = due_date;
+    CreatedBy = CREATED_BY;
+    CreatedAt = CREATED_AT;
+    LocalLastChangedBy = LOCAL_LAST_CHANGED_BY;
+    LocalLastChangedAt = LOCAL_LAST_CHANGED_AT;
+    LastChangedAt = LAST_CHANGED_AT;
+  }
+}
