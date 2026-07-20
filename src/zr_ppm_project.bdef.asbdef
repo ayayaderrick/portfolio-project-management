@@ -22,6 +22,8 @@ authorization master( global )
    ProjectUUID;
 
 
+  association _Milestone {create;}
+
   create;
   update;
   delete;
@@ -49,3 +51,47 @@ authorization master( global )
   }
 
 }
+
+define behavior for ZR_PPM_MILESTONE alias Milestone
+persistent table ZPPM_MILESTONE_A
+draft table ZPPM_MILESTOME_D
+etag master LocalLastChangedAt
+lock dependent by _Project
+authorization dependent by _Project
+{
+  field ( readonly )
+   MilestoneUuid,
+   ProjectUuid,
+   CreatedBy,
+   CreatedAt,
+   LocalLastChangedBy,
+   LocalLastChangedAt,
+   LastChangedAt;
+
+  field ( numbering : managed )
+   MilestoneUuid;
+
+  association _Project;
+//  association _Task {create;}
+
+  update;
+  delete;
+
+  mapping for ZPPM_MILESTONE_A corresponding
+  {
+    MilestoneUuid = milestone_uuid;
+    ProjectUuid = project_uuid;
+    MilestoneId = milestone_id;
+    MilestoneName = milestone_name;
+    Description = description;
+    SequenceNo = sequence_no;
+    DueDate = due_date;
+    Status = status;
+    CreatedBy = CREATED_BY;
+    CreatedAt = CREATED_AT;
+    LocalLastChangedBy = LOCAL_LAST_CHANGED_BY;
+    LocalLastChangedAt = LOCAL_LAST_CHANGED_AT;
+    LastChangedAt = LAST_CHANGED_AT;
+  }
+}
+
