@@ -17,7 +17,7 @@ use etag
   use action Resume;
   use action Prepare;
 
-  use association _Milestone {create;}
+  use association _Milestone {create; with draft;}
 
 }
 
@@ -28,8 +28,8 @@ use etag
   use delete;
 
 
-  use association _Project {}
-  use association _Task {create;}
+  use association _Project { with draft;}
+  use association _Task {create; with draft;}
 
 }
 
@@ -39,7 +39,7 @@ use etag
   use update;
   use delete;
 
-  use association _Project {}
-  use association _Milestone{}
+  use association _Project { with draft;}
+  use association _Milestone{ with draft;}
 
 }
