@@ -6,6 +6,9 @@
     name: 'ZC_PPM_PROJECT'
   }
 }
-define service ZUI_PPM_PROJECT_O4 provider contracts odata_v4_ui {
-  expose ZC_PPM_PROJECT as Project;
+define service ZUI_PPM_PROJECT_O4
+  provider contracts odata_v4_ui {
+  expose ZC_PPM_PROJECT   as Project;
+  expose ZC_PPM_MILESTONE as Milestone;
+  expose ZC_PPM_TASK      as Task;
 }
