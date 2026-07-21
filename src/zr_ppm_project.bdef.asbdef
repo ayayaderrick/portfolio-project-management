@@ -23,7 +23,7 @@ authorization master( global )
    ProjectUUID;
 
 
-  association _Milestone {create;}
+  association _Milestone {create; with draft;}
 
   create;
   update;
@@ -71,8 +71,8 @@ authorization dependent by _Project
   field ( numbering : managed )
    MilestoneUuid;
 
-  association _Project;
-  association _Task {create;}
+  association _Project{ with draft;}
+  association _Task {create; with draft;}
 
   update;
   delete;
@@ -115,8 +115,8 @@ authorization dependent by _Project
   field ( numbering : managed )
    TaskUuid;
 
-  association _Milestone;
-  association _Project;
+  association _Milestone{ with draft;}
+  association _Project{ with draft;}
 
   update;
   delete;
