@@ -13,6 +13,7 @@ authorization master( global )
 {
   field ( readonly )
    ProjectUUID,
+   ProjectID,
    CreatedBy,
    CreatedAt,
    LocalLastChangedBy,
@@ -62,6 +63,7 @@ authorization dependent by _Project
   field ( readonly )
    MilestoneUuid,
    ProjectUuid,
+   MilestoneId,
    CreatedBy,
    CreatedAt,
    LocalLastChangedBy,
@@ -106,6 +108,7 @@ authorization dependent by _Project
    TaskUuid,
    MilestoneUuid,
    ProjectUuid,
+   TaskId,
    CreatedBy,
    CreatedAt,
    LocalLastChangedBy,
