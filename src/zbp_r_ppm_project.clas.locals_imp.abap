@@ -11,7 +11,7 @@ CLASS lhc_task IMPLEMENTATION.
 
   METHOD setTaskId.
 
-    DATA lv_max_no TYPE zppm_task_id.
+    DATA lv_max_id TYPE zppm_task_id.
 
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Task
@@ -32,20 +32,20 @@ CLASS lhc_task IMPLEMENTATION.
       RESULT DATA(lt_existing_tasks).
 
       SORT lt_existing_tasks by TaskId DESCENDING.
-      lv_max_no = '0000000000'.
+      lv_max_id = '0000000000'.
       if lt_existing_tasks is not INITIAL.
-        lv_max_no = lt_existing_tasks[ 1 ]-TaskId.
+        lv_max_id = lt_existing_tasks[ 1 ]-TaskId.
       ENDIF.
 
       " Assign numbers sequentially for bulk creation batches
       LOOP AT lt_tasks ASSIGNING FIELD-SYMBOL(<fs_task>) WHERE ProjectUuid = <fs_milestone_parent>-MilestoneUuid
       AND TaskId is INITIAL.
-        lv_max_no += 1.
+        lv_max_id += 1.
 
         MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
         ENTITY Task
         UPDATE FIELDS ( TaskId )
-        WITH VALUE #( ( %tky = <fs_task>-%tky TaskId = lv_max_no ) ).
+        WITH VALUE #( ( %tky = <fs_task>-%tky TaskId = lv_max_id ) ).
       ENDLOOP.
 
     ENDLOOP.
@@ -67,7 +67,7 @@ CLASS lhc_milestone IMPLEMENTATION.
 
   METHOD setMilestoneId.
 
-    DATA lv_max_no TYPE zppm_milestone_id.
+    DATA lv_max_id TYPE zppm_milestone_id.
 
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Milestone
@@ -88,20 +88,20 @@ CLASS lhc_milestone IMPLEMENTATION.
       RESULT DATA(lt_existing_milestones).
 
       SORT lt_existing_milestones by MilestoneId DESCENDING.
-      lv_max_no = '0000000000'.
+      lv_max_id = '0000000000'.
       if lt_existing_milestones is not INITIAL.
-        lv_max_no = lt_existing_milestones[ 1 ]-MilestoneId.
+        lv_max_id = lt_existing_milestones[ 1 ]-MilestoneId.
       ENDIF.
 
       " Assign numbers sequentially for bulk creation batches
       LOOP AT lt_milestones ASSIGNING FIELD-SYMBOL(<fs_milestone>) WHERE ProjectUuid = <fs_parent>-ProjectUuid
       AND MilestoneId is INITIAL.
-        lv_max_no += 1.
+        lv_max_id += 1.
 
         MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
         ENTITY Milestone
         UPDATE FIELDS ( MilestoneId )
-        WITH VALUE #( ( %tky = <fs_milestone>-%tky MilestoneId = lv_max_no ) ).
+        WITH VALUE #( ( %tky = <fs_milestone>-%tky MilestoneId = lv_max_id ) ).
       ENDLOOP.
 
     ENDLOOP.
