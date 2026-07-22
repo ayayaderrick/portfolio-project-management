@@ -1,3 +1,59 @@
+CLASS lhc_task DEFINITION INHERITING FROM cl_abap_behavior_handler.
+
+  PRIVATE SECTION.
+
+    METHODS setTaskId FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR Task~setTaskId.
+
+ENDCLASS.
+
+CLASS lhc_task IMPLEMENTATION.
+
+  METHOD setTaskId.
+
+    DATA lv_max_no TYPE zppm_task_id.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    FIELDS ( MilestoneUuid TaskId )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_tasks).
+
+    DATA(lt_milestone_parents) = lt_tasks.
+    SORT lt_milestone_parents BY MilestoneUuid.
+    DELETE ADJACENT DUPLICATES FROM lt_milestone_parents COMPARING MilestoneUuid.
+
+    LOOP AT lt_milestone_parents ASSIGNING FIELD-SYMBOL(<fs_milestone_parent>).
+      " Read tasks associated with this specific parent milestone (active + draft)
+      READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Milestone BY \_Task
+      FIELDS ( TaskId )
+      WITH VALUE #( ( %tky = VALUE #( MilestoneUuid = <fs_milestone_parent>-ProjectUuid ) ) )
+      RESULT DATA(lt_existing_tasks).
+
+      SORT lt_existing_tasks by TaskId DESCENDING.
+      lv_max_no = '0000000000'.
+      if lt_existing_tasks is not INITIAL.
+        lv_max_no = lt_existing_tasks[ 1 ]-TaskId.
+      ENDIF.
+
+      " Assign numbers sequentially for bulk creation batches
+      LOOP AT lt_tasks ASSIGNING FIELD-SYMBOL(<fs_task>) WHERE ProjectUuid = <fs_milestone_parent>-MilestoneUuid
+      AND TaskId is INITIAL.
+        lv_max_no += 1.
+
+        MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+        ENTITY Task
+        UPDATE FIELDS ( TaskId )
+        WITH VALUE #( ( %tky = <fs_task>-%tky TaskId = lv_max_no ) ).
+      ENDLOOP.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
 CLASS lhc_milestone DEFINITION INHERITING FROM cl_abap_behavior_handler.
 
   PRIVATE SECTION.
@@ -31,7 +87,7 @@ CLASS lhc_milestone IMPLEMENTATION.
       WITH VALUE #( ( %tky = VALUE #( ProjectUUID = <fs_parent>-ProjectUuid ) ) )
       RESULT DATA(lt_existing_milestones).
 
-      SORT lt_existing_milestones by MilestoneId.
+      SORT lt_existing_milestones by MilestoneId DESCENDING.
       lv_max_no = '0000000000'.
       if lt_existing_milestones is not INITIAL.
         lv_max_no = lt_existing_milestones[ 1 ]-MilestoneId.
@@ -45,7 +101,7 @@ CLASS lhc_milestone IMPLEMENTATION.
         MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
         ENTITY Milestone
         UPDATE FIELDS ( MilestoneId )
-        WITH VALUE #( ( %tky = <fs_parent>-%tky MilestoneId = lv_max_no ) ).
+        WITH VALUE #( ( %tky = <fs_milestone>-%tky MilestoneId = lv_max_no ) ).
       ENDLOOP.
 
     ENDLOOP.
