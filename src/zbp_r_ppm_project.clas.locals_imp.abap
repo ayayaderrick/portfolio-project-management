@@ -1,13 +1,182 @@
-CLASS LHC_ZR_PPM_PROJECT DEFINITION INHERITING FROM CL_ABAP_BEHAVIOR_HANDLER.
+CLASS lhc_task DEFINITION INHERITING FROM cl_abap_behavior_handler.
+
   PRIVATE SECTION.
-    METHODS:
-      GET_GLOBAL_AUTHORIZATIONS FOR GLOBAL AUTHORIZATION
-        IMPORTING
-           REQUEST requested_authorizations FOR Project
-        RESULT result.
+
+    METHODS setTaskId FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR Task~setTaskId.
+
 ENDCLASS.
 
-CLASS LHC_ZR_PPM_PROJECT IMPLEMENTATION.
-  METHOD GET_GLOBAL_AUTHORIZATIONS.
+CLASS lhc_task IMPLEMENTATION.
+
+  METHOD setTaskId.
+
+    DATA lv_max_id TYPE zppm_task_id.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    FIELDS ( MilestoneUuid TaskId )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_tasks).
+
+    DATA(lt_milestone_parents) = lt_tasks.
+    SORT lt_milestone_parents BY MilestoneUuid.
+    DELETE ADJACENT DUPLICATES FROM lt_milestone_parents COMPARING MilestoneUuid.
+
+    LOOP AT lt_milestone_parents ASSIGNING FIELD-SYMBOL(<fs_milestone_parent>).
+      " Read tasks associated with this specific parent milestone (active + draft)
+      READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Milestone BY \_Task
+      FIELDS ( TaskId )
+      WITH VALUE #( ( %tky = VALUE #( MilestoneUuid = <fs_milestone_parent>-ProjectUuid ) ) )
+      RESULT DATA(lt_existing_tasks).
+
+      SORT lt_existing_tasks by TaskId DESCENDING.
+      lv_max_id = '0000000000'.
+      if lt_existing_tasks is not INITIAL.
+        lv_max_id = lt_existing_tasks[ 1 ]-TaskId.
+      ENDIF.
+
+      " Assign numbers sequentially for bulk creation batches
+      LOOP AT lt_tasks ASSIGNING FIELD-SYMBOL(<fs_task>) WHERE ProjectUuid = <fs_milestone_parent>-MilestoneUuid
+      AND TaskId is INITIAL.
+        lv_max_id += 1.
+
+        MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+        ENTITY Task
+        UPDATE FIELDS ( TaskId )
+        WITH VALUE #( ( %tky = <fs_task>-%tky TaskId = lv_max_id ) ).
+      ENDLOOP.
+
+    ENDLOOP.
+
   ENDMETHOD.
+
+ENDCLASS.
+
+CLASS lhc_milestone DEFINITION INHERITING FROM cl_abap_behavior_handler.
+
+  PRIVATE SECTION.
+
+    METHODS setMilestoneId FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR Milestone~setMilestoneId.
+
+ENDCLASS.
+
+CLASS lhc_milestone IMPLEMENTATION.
+
+  METHOD setMilestoneId.
+
+    DATA lv_max_id TYPE zppm_milestone_id.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone
+    FIELDS ( ProjectUuid MilestoneId )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_milestones).
+
+    DATA(lt_parents) = lt_milestones.
+    SORT lt_parents BY ProjectUuid.
+    DELETE ADJACENT DUPLICATES FROM lt_parents COMPARING ProjectUuid.
+
+    LOOP AT lt_parents ASSIGNING FIELD-SYMBOL(<fs_parent>).
+      " Reads both existing saved milestones and un-saved draft rows for this project
+      READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project BY \_Milestone
+      FIELDS ( MilestoneId )
+      WITH VALUE #( ( %tky = VALUE #( ProjectUUID = <fs_parent>-ProjectUuid ) ) )
+      RESULT DATA(lt_existing_milestones).
+
+      SORT lt_existing_milestones by MilestoneId DESCENDING.
+      lv_max_id = '0000000000'.
+      if lt_existing_milestones is not INITIAL.
+        lv_max_id = lt_existing_milestones[ 1 ]-MilestoneId.
+      ENDIF.
+
+      " Assign numbers sequentially for bulk creation batches
+      LOOP AT lt_milestones ASSIGNING FIELD-SYMBOL(<fs_milestone>) WHERE ProjectUuid = <fs_parent>-ProjectUuid
+      AND MilestoneId is INITIAL.
+        lv_max_id += 1.
+
+        MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+        ENTITY Milestone
+        UPDATE FIELDS ( MilestoneId )
+        WITH VALUE #( ( %tky = <fs_milestone>-%tky MilestoneId = lv_max_id ) ).
+      ENDLOOP.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS lhc_zr_ppm_project DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+    METHODS:
+      get_global_authorizations FOR GLOBAL AUTHORIZATION
+        IMPORTING
+        REQUEST requested_authorizations FOR Project
+        RESULT result,
+      setProjectId FOR DETERMINE ON MODIFY
+        IMPORTING keys FOR Project~setProjectId.
+ENDCLASS.
+
+CLASS lhc_zr_ppm_project IMPLEMENTATION.
+  METHOD get_global_authorizations.
+  ENDMETHOD.
+  METHOD setProjectId.
+
+    DATA project_id_max TYPE zppm_project_id.
+    DATA lt_update TYPE TABLE FOR UPDATE zr_ppm_project.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    FIELDS ( ProjectID )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_projects).
+
+    " Ensure Travel ID is not set yet (idempotent)- must be checked when BO is draft-enabled
+    DELETE lt_projects WHERE ProjectID IS NOT INITIAL.
+    IF lt_projects IS INITIAL. RETURN. ENDIF.
+
+    " Get numbers
+    TRY.
+        cl_numberrange_runtime=>number_get(
+        EXPORTING
+          nr_range_nr       = '01'
+          object            = 'ZPPM_NR'
+          quantity          = CONV #( lines( lt_projects ) )
+        IMPORTING
+          number            = DATA(number_range_key)
+          returncode        = DATA(number_range_return_code)
+          returned_quantity = DATA(number_range_returned_quantity)
+      ).
+      CATCH cx_number_ranges INTO DATA(lx_number_ranges).
+        reported-project = VALUE #( FOR project IN  lt_projects (
+        %tky = project-%tky
+        %msg = new_message_with_text(
+                  severity = if_abap_behv_message=>severity-error
+                  text     = lx_number_ranges->get_text( )
+                  )
+        ) ).
+        EXIT.
+    ENDTRY.
+
+    project_id_max = number_range_key - number_range_returned_quantity.
+
+    lt_update = VALUE #( FOR project IN lt_projects (
+        %tky = project-%tky
+        ProjectID = |PRJ-{ project_id_max }|
+        %control-ProjectID = if_abap_behv=>mk-on
+     ) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    UPDATE
+    FIELDS ( ProjectID )
+    WITH lt_update.
+
+
+  ENDMETHOD.
+
 ENDCLASS.

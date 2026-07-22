@@ -13,6 +13,7 @@ authorization master( global )
 {
   field ( readonly )
    ProjectUUID,
+   ProjectID,
    CreatedBy,
    CreatedAt,
    LocalLastChangedBy,
@@ -22,6 +23,7 @@ authorization master( global )
   field ( numbering : managed )
    ProjectUUID;
 
+  determination setProjectId on modify { create; }
 
   association _Milestone {create; with draft;}
 
@@ -62,6 +64,7 @@ authorization dependent by _Project
   field ( readonly )
    MilestoneUuid,
    ProjectUuid,
+   MilestoneId,
    CreatedBy,
    CreatedAt,
    LocalLastChangedBy,
@@ -70,6 +73,8 @@ authorization dependent by _Project
 
   field ( numbering : managed )
    MilestoneUuid;
+
+  determination setMilestoneId on modify { create; }
 
   association _Project{ with draft;}
   association _Task {create; with draft;}
@@ -106,6 +111,7 @@ authorization dependent by _Project
    TaskUuid,
    MilestoneUuid,
    ProjectUuid,
+   TaskId,
    CreatedBy,
    CreatedAt,
    LocalLastChangedBy,
@@ -114,6 +120,8 @@ authorization dependent by _Project
 
   field ( numbering : managed )
    TaskUuid;
+
+  determination setTaskId on modify { create; }
 
   association _Milestone{ with draft;}
   association _Project{ with draft;}
