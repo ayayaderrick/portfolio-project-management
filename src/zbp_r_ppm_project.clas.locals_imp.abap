@@ -1,3 +1,59 @@
+CLASS lhc_milestone DEFINITION INHERITING FROM cl_abap_behavior_handler.
+
+  PRIVATE SECTION.
+
+    METHODS setMilestoneId FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR Milestone~setMilestoneId.
+
+ENDCLASS.
+
+CLASS lhc_milestone IMPLEMENTATION.
+
+  METHOD setMilestoneId.
+
+    DATA lv_max_no TYPE zppm_milestone_id.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone
+    FIELDS ( ProjectUuid MilestoneId )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_milestones).
+
+    DATA(lt_parents) = lt_milestones.
+    SORT lt_parents BY ProjectUuid.
+    DELETE ADJACENT DUPLICATES FROM lt_parents COMPARING ProjectUuid.
+
+    LOOP AT lt_parents ASSIGNING FIELD-SYMBOL(<fs_parent>).
+      " Reads both existing saved milestones and un-saved draft rows for this project
+      READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project BY \_Milestone
+      FIELDS ( MilestoneId )
+      WITH VALUE #( ( %tky = VALUE #( ProjectUUID = <fs_parent>-ProjectUuid ) ) )
+      RESULT DATA(lt_existing_milestones).
+
+      SORT lt_existing_milestones by MilestoneId.
+      lv_max_no = '0000000000'.
+      if lt_existing_milestones is not INITIAL.
+        lv_max_no = lt_existing_milestones[ 1 ]-MilestoneId.
+      ENDIF.
+
+      " Assign numbers sequentially for bulk creation batches
+      LOOP AT lt_milestones ASSIGNING FIELD-SYMBOL(<fs_milestone>) WHERE ProjectUuid = <fs_parent>-ProjectUuid
+      AND MilestoneId is INITIAL.
+        lv_max_no += 1.
+
+        MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+        ENTITY Milestone
+        UPDATE FIELDS ( MilestoneId )
+        WITH VALUE #( ( %tky = <fs_parent>-%tky MilestoneId = lv_max_no ) ).
+      ENDLOOP.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
 CLASS lhc_zr_ppm_project DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
     METHODS:
