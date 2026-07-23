@@ -42,8 +42,8 @@ annotate view ZC_PPM_PROJECT with
   }
    ]
 
-  @UI.identification: [ { position: 10 , label: 'ProjectID' } ]
-  @UI.lineItem: [ { position: 10 , label: 'ProjectID', importance: #HIGH } ]
+  @UI.identification: [ { position: 10  } ]
+  @UI.lineItem: [ { position: 10 , importance: #HIGH } ]
   @UI.selectionField: [ { position: 10 } ]
   @UI.fieldGroup: [{ qualifier: 'General', position: 10 }]
   ProjectID;
@@ -76,7 +76,9 @@ annotate view ZC_PPM_PROJECT with
   @UI.fieldGroup: [{ qualifier: 'General', position: 40 }]
   Status;
 
+  @UI.identification: [ { position: 70 } ]
+  @UI.lineItem: [ { position: 60 } ]
   @UI.fieldGroup: [{ qualifier: 'Progress', position: 10 }]
-  percentagecomplete;
+  CompletionPercentage;
 
 }
