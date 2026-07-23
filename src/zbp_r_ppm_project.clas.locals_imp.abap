@@ -31,21 +31,21 @@ CLASS lhc_task IMPLEMENTATION.
       WITH VALUE #( ( %tky = VALUE #( MilestoneUuid = <fs_milestone_parent>-ProjectUuid ) ) )
       RESULT DATA(lt_existing_tasks).
 
-      SORT lt_existing_tasks by TaskId DESCENDING.
+      SORT lt_existing_tasks BY TaskId DESCENDING.
       lv_max_id = '0000000000'.
-      if lt_existing_tasks is not INITIAL.
+      IF lt_existing_tasks IS NOT INITIAL.
         lv_max_id = lt_existing_tasks[ 1 ]-TaskId.
       ENDIF.
 
       " Assign numbers sequentially for bulk creation batches
       LOOP AT lt_tasks ASSIGNING FIELD-SYMBOL(<fs_task>) WHERE ProjectUuid = <fs_milestone_parent>-MilestoneUuid
-      AND TaskId is INITIAL.
+      AND TaskId IS INITIAL.
         lv_max_id += 1.
 
         MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
         ENTITY Task
         UPDATE FIELDS ( TaskId )
-        WITH VALUE #( ( %tky = <fs_task>-%tky TaskId = lv_max_id ) ).
+        WITH VALUE #( ( %tky = <fs_task>-%tky TaskId = |TSK-{ lv_max_id }| ) ).
       ENDLOOP.
 
     ENDLOOP.
@@ -68,12 +68,17 @@ CLASS lhc_milestone IMPLEMENTATION.
   METHOD setMilestoneId.
 
     DATA lv_max_id TYPE zppm_milestone_id.
+    DATA lt_milestone_update TYPE TABLE FOR UPDATE zr_ppm_project\\Milestone.
 
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Milestone
     FIELDS ( ProjectUuid MilestoneId )
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_milestones).
+
+    " Ensure the method is strictly idempotent (ignore records already numbered)
+    DELETE lt_milestones WHERE MilestoneId IS NOT INITIAL.
+    IF lt_milestones IS INITIAL. RETURN. ENDIF.
 
     DATA(lt_parents) = lt_milestones.
     SORT lt_parents BY ProjectUuid.
@@ -87,24 +92,32 @@ CLASS lhc_milestone IMPLEMENTATION.
       WITH VALUE #( ( %tky = VALUE #( ProjectUUID = <fs_parent>-ProjectUuid ) ) )
       RESULT DATA(lt_existing_milestones).
 
-      SORT lt_existing_milestones by MilestoneId DESCENDING.
+      SORT lt_existing_milestones BY MilestoneId DESCENDING.
       lv_max_id = '0000000000'.
-      if lt_existing_milestones is not INITIAL.
+      IF lt_existing_milestones IS NOT INITIAL.
         lv_max_id = lt_existing_milestones[ 1 ]-MilestoneId.
       ENDIF.
 
       " Assign numbers sequentially for bulk creation batches
       LOOP AT lt_milestones ASSIGNING FIELD-SYMBOL(<fs_milestone>) WHERE ProjectUuid = <fs_parent>-ProjectUuid
-      AND MilestoneId is INITIAL.
+      AND MilestoneId IS INITIAL.
         lv_max_id += 1.
 
-        MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
-        ENTITY Milestone
-        UPDATE FIELDS ( MilestoneId )
-        WITH VALUE #( ( %tky = <fs_milestone>-%tky MilestoneId = lv_max_id ) ).
+        APPEND VALUE #(
+            %tky = <fs_milestone>-%tky
+            MilestoneId = lv_max_id
+         ) TO lt_milestone_update.
+
       ENDLOOP.
 
     ENDLOOP.
+
+    IF lt_milestone_update IS NOT INITIAL.
+      MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Milestone
+      UPDATE FIELDS ( MilestoneId )
+      WITH lt_milestone_update.
+    ENDIF.
 
   ENDMETHOD.
 
@@ -135,7 +148,7 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_projects).
 
-    " Ensure Travel ID is not set yet (idempotent)- must be checked when BO is draft-enabled
+    " Ensure Project ID is not set yet (idempotent)- must be checked when BO is draft-enabled
     DELETE lt_projects WHERE ProjectID IS NOT INITIAL.
     IF lt_projects IS INITIAL. RETURN. ENDIF.
 
@@ -164,9 +177,9 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
 
     project_id_max = number_range_key - number_range_returned_quantity.
 
-    lt_update = VALUE #( FOR project IN lt_projects (
+    lt_update = VALUE #( FOR project IN lt_projects INDEX INTO lv_index (
         %tky = project-%tky
-        ProjectID = |PRJ-{ project_id_max }|
+        ProjectID = |PRJ-{ project_id_max + lv_index }|
         %control-ProjectID = if_abap_behv=>mk-on
      ) ).
 
