@@ -20,6 +20,10 @@ CLASS lhc_task IMPLEMENTATION.
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_tasks).
 
+    " Ensure the method is strictly idempotent (ignore records already numbered)
+    DELETE lt_tasks WHERE TaskId IS NOT INITIAL.
+    IF lt_tasks IS INITIAL. RETURN. ENDIF.
+
     DATA(lt_milestone_parents) = lt_tasks.
     SORT lt_milestone_parents BY MilestoneUuid.
     DELETE ADJACENT DUPLICATES FROM lt_milestone_parents COMPARING MilestoneUuid.
@@ -29,7 +33,7 @@ CLASS lhc_task IMPLEMENTATION.
       READ ENTITIES OF zr_ppm_project IN LOCAL MODE
       ENTITY Milestone BY \_Task
       FIELDS ( TaskId )
-      WITH VALUE #( ( %tky = VALUE #( MilestoneUuid = <fs_milestone_parent>-ProjectUuid ) ) )
+      WITH VALUE #( ( %tky = VALUE #( MilestoneUuid = <fs_milestone_parent>-MilestoneUuid ) ) )
       RESULT DATA(lt_existing_tasks).
 
       SORT lt_existing_tasks BY TaskId DESCENDING.
@@ -39,7 +43,7 @@ CLASS lhc_task IMPLEMENTATION.
       ENDIF.
 
       " Assign numbers sequentially for bulk creation batches
-      LOOP AT lt_tasks ASSIGNING FIELD-SYMBOL(<fs_task>) WHERE ProjectUuid = <fs_milestone_parent>-MilestoneUuid
+      LOOP AT lt_tasks ASSIGNING FIELD-SYMBOL(<fs_task>) WHERE MilestoneUuid = <fs_milestone_parent>-MilestoneUuid
       AND TaskId IS INITIAL.
         lv_max_id += 1.
 
