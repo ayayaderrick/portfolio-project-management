@@ -12,13 +12,8 @@ total etag LastChangedAt
 authorization master( global )
 {
   field ( readonly )
-   ProjectUUID,
-   ProjectID,
-   CreatedBy,
-   CreatedAt,
-   LocalLastChangedBy,
-   LocalLastChangedAt,
-   LastChangedAt;
+   ProjectUUID, ProjectID, CompletionPercentage, CreatedBy,
+   CreatedAt, LocalLastChangedBy, LocalLastChangedAt, LastChangedAt;
 
   field ( numbering : managed )
    ProjectUUID;
@@ -46,6 +41,7 @@ authorization master( global )
     StartDate = START_DATE;
     EndDate = END_DATE;
     Status = STATUS;
+    CompletionPercentage = completion_percentage;
     CreatedBy = CREATED_BY;
     CreatedAt = CREATED_AT;
     LocalLastChangedBy = LOCAL_LAST_CHANGED_BY;
@@ -62,14 +58,8 @@ lock dependent by _Project
 authorization dependent by _Project
 {
   field ( readonly )
-   MilestoneUuid,
-   ProjectUuid,
-   MilestoneId,
-   CreatedBy,
-   CreatedAt,
-   LocalLastChangedBy,
-   LocalLastChangedAt,
-   LastChangedAt;
+   MilestoneUuid, ProjectUuid, MilestoneId, CreatedBy,
+   CreatedAt, LocalLastChangedBy, LocalLastChangedAt, LastChangedAt;
 
   field ( numbering : managed )
    MilestoneUuid;
@@ -108,14 +98,8 @@ lock dependent by _Project
 authorization dependent by _Project
 {
   field ( readonly )
-   TaskUuid,
-   MilestoneUuid,
-   ProjectUuid,
-   TaskId,
-   CreatedBy,
-   CreatedAt,
-   LocalLastChangedBy,
-   LocalLastChangedAt,
+   TaskUuid, MilestoneUuid, ProjectUuid, TaskId,
+   CreatedBy, CreatedAt, LocalLastChangedBy, LocalLastChangedAt,
    LastChangedAt;
 
   field ( numbering : managed )
