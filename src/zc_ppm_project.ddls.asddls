@@ -26,6 +26,7 @@ define root view entity ZC_PPM_PROJECT
         entity: { name: 'ZI_PPM_PROJECTSTATUS_VH', element: 'Code' }
       }]
       Status,
+      CompletionPercentage,
       @Semantics: {
         user.createdBy: true
       }
