@@ -14,6 +14,7 @@ define root view entity ZR_PPM_PROJECT
       start_date            as StartDate,
       end_date              as EndDate,
       status                as Status,
+      completion_percentage as CompletionPercentage,
       @Semantics.user.createdBy: true
       created_by            as CreatedBy,
       @Semantics.systemDateTime.createdAt: true
