@@ -12,6 +12,7 @@ CLASS lhc_task IMPLEMENTATION.
   METHOD setTaskId.
 
     DATA lv_max_id TYPE zppm_task_id.
+    DATA lt_task_update TYPE TABLE FOR UPDATE zr_ppm_project\\Task.
 
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Task
@@ -42,13 +43,21 @@ CLASS lhc_task IMPLEMENTATION.
       AND TaskId IS INITIAL.
         lv_max_id += 1.
 
-        MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
-        ENTITY Task
-        UPDATE FIELDS ( TaskId )
-        WITH VALUE #( ( %tky = <fs_task>-%tky TaskId = |TSK-{ lv_max_id }| ) ).
+        APPEND VALUE #(
+            %tky = <fs_task>-%tky
+            TaskId = lv_max_id
+         ) TO lt_task_update.
+
       ENDLOOP.
 
     ENDLOOP.
+
+    IF lt_task_update IS NOT INITIAL.
+      MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Task
+      UPDATE FIELDS ( TaskId )
+      WITH lt_task_update.
+    ENDIF.
 
   ENDMETHOD.
 
