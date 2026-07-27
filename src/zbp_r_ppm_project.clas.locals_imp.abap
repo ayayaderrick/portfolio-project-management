@@ -162,7 +162,7 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
     RESULT DATA(lt_projects).
 
     " Ensure Project ID is not set yet (idempotent)- must be checked when BO is draft-enabled
-    DELETE lt_projects WHERE ProjectID IS NOT INITIAL.
+    DELETE lt_projects WHERE ProjectID IS NOT INITIAL AND ProjectID <> '0000000000'.
     IF lt_projects IS INITIAL. RETURN. ENDIF.
 
     " Get numbers
@@ -185,14 +185,14 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
                   text     = lx_number_ranges->get_text( )
                   )
         ) ).
-        EXIT.
+        RETURN.
     ENDTRY.
 
     project_id_max = number_range_key - number_range_returned_quantity.
 
     lt_update = VALUE #( FOR project IN lt_projects INDEX INTO lv_index (
         %tky = project-%tky
-        ProjectID = |PRJ-{ project_id_max + lv_index }|
+        ProjectID = project_id_max + lv_index
         %control-ProjectID = if_abap_behv=>mk-on
      ) ).
 
