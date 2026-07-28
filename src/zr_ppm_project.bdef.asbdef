@@ -32,7 +32,9 @@ authorization master ( global )
   draft action Discard;
   draft action Edit;
   draft action Resume;
-  draft determine action Prepare{ validation validateProjectDates; }
+  draft determine action Prepare{
+    validation validateProjectDates;
+    validation Milestone~validateMilestoneDueDate; }
 
   mapping for zppm_project_a corresponding extensible
     {
@@ -67,6 +69,7 @@ authorization dependent by _Project
   MilestoneUuid;
 
   determination setMilestoneId on modify { create; }
+  validation validateMilestoneDueDate on save { create; update; }
 
   association _Project { with draft; }
   association _Task { create; with draft; }
