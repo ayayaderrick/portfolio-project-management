@@ -220,7 +220,7 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
       " Invalidate state messages
       APPEND VALUE #(
           %tky = ls_project-%tky
-          %state_area = 'VALIDATE_PROJECT_DATES'
+          %state_area = zif_ppm_state_area=>state_area-project_dates
        ) TO reported-project.
 
       IF ls_project-StartDate IS INITIAL OR ls_project-EndDate IS INITIAL.
@@ -236,7 +236,7 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
                     number = '001'
                     severity = if_abap_behv_message=>severity-error )
             %element-EndDate = if_abap_behv=>mk-on
-            %state_area = 'VALIDATE_PROJECT_DATES'
+            %state_area = zif_ppm_state_area=>state_area-project_dates
          ) to reported-project.
       ENDIF.
     ENDLOOP.
