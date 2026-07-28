@@ -65,6 +65,7 @@ CLASS lhc_task IMPLEMENTATION.
 
   ENDMETHOD.
 
+
 ENDCLASS.
 
 CLASS lhc_milestone DEFINITION INHERITING FROM cl_abap_behavior_handler.
@@ -144,7 +145,9 @@ CLASS lhc_zr_ppm_project DEFINITION INHERITING FROM cl_abap_behavior_handler.
         REQUEST requested_authorizations FOR Project
         RESULT result,
       setProjectId FOR DETERMINE ON MODIFY
-        IMPORTING keys FOR Project~setProjectId.
+        IMPORTING keys FOR Project~setProjectId,
+      validateProjectDates FOR VALIDATE ON SAVE
+        IMPORTING keys FOR Project~validateProjectDates.
 ENDCLASS.
 
 CLASS lhc_zr_ppm_project IMPLEMENTATION.
@@ -202,6 +205,41 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
     FIELDS ( ProjectID )
     WITH lt_update.
 
+
+  ENDMETHOD.
+
+  METHOD validateProjectDates.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    FIELDS ( StartDate EndDate )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_projects).
+
+    LOOP AT lt_projects INTO DATA(ls_project).
+      " Invalidate state messages
+      APPEND VALUE #(
+          %tky = ls_project-%tky
+          %state_area = 'VALIDATE_PROJECT_DATES'
+       ) TO reported-project.
+
+      IF ls_project-StartDate IS INITIAL OR ls_project-EndDate IS INITIAL.
+        CONTINUE.
+      ENDIF.
+
+      IF ls_project-StartDate > ls_project-EndDate.
+        APPEND VALUE #( %tky = ls_project-%tky ) to failed-project.
+        APPEND VALUE #(
+            %tky = ls_project-%tky
+            %msg = new_message(
+                    id = 'ZPPM_MESSAGES'
+                    number = '001'
+                    severity = if_abap_behv_message=>severity-error )
+            %element-EndDate = if_abap_behv=>mk-on
+            %state_area = 'VALIDATE_PROJECT_DATES'
+         ) to reported-project.
+      ENDIF.
+    ENDLOOP.
 
   ENDMETHOD.
 
