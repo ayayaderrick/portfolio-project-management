@@ -218,8 +218,13 @@ CLASS lhc_milestone IMPLEMENTATION.
           %state_area = zif_ppm_state_area=>state_area-milestone_due_date
        ) TO reported-milestone.
 
-      IF <fs_milestone>-DueDate < lt_projects[ 1 ]-StartDate
-      OR <fs_milestone>-DueDate > lt_projects[ 1 ]-EndDate.
+      ASSIGN lt_projects[ ProjectUuid = <fs_milestone>-ProjectUuid
+                          %is_draft = <fs_milestone>-%is_draft ] to FIELD-SYMBOL(<fs_project>).
+
+      if sy-subrc <> 0. RETURN. ENDIF.
+
+      IF <fs_milestone>-DueDate < <fs_project>-StartDate
+      OR <fs_milestone>-DueDate > <fs_project>-EndDate.
         APPEND VALUE #( %tky = <fs_milestone>-%tky ) TO failed-milestone.
         APPEND VALUE #(
             %tky = <fs_milestone>-%tky
