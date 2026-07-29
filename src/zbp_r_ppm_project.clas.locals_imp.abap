@@ -4,6 +4,8 @@ CLASS lhc_task DEFINITION INHERITING FROM cl_abap_behavior_handler.
 
     METHODS setTaskId FOR DETERMINE ON MODIFY
       IMPORTING keys FOR Task~setTaskId.
+    METHODS validateTaskDueDate FOR VALIDATE ON SAVE
+      IMPORTING keys FOR Task~validateTaskDueDate.
 
 ENDCLASS.
 
@@ -65,6 +67,60 @@ CLASS lhc_task IMPLEMENTATION.
 
   ENDMETHOD.
 
+
+  METHOD validateTaskDueDate.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    FIELDS ( MilestoneUuid DueDate )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_tasks).
+
+    IF lt_tasks IS INITIAL. RETURN. ENDIF.
+
+    DATA lt_milestone_keys TYPE TABLE FOR READ IMPORT zr_ppm_project\\Milestone.
+
+    lt_milestone_keys = VALUE #( FOR task IN lt_tasks ( %key-MilestoneUuid = task-MilestoneUuid
+                                                        %is_draft = task-%is_draft ) ).
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone
+    FIELDS ( ProjectUuid DueDate )
+    WITH lt_milestone_keys
+    RESULT DATA(lt_milestones).
+
+    LOOP AT lt_tasks ASSIGNING FIELD-SYMBOL(<fs_task>).
+      " Clear existing state messages for this instance
+      APPEND VALUE #(
+          %tky = <fs_task>-%tky
+          %state_area = zif_ppm_state_area=>state_area-task_due_date
+       ) TO reported-task.
+
+      " Read corresponding milestone safely
+      ASSIGN lt_milestones[ MilestoneUuid = <fs_task>-MilestoneUuid
+                            %is_draft = <fs_task>-%is_draft ] TO FIELD-SYMBOL(<fs_milestone>).
+
+      IF sy-subrc <> 0. CONTINUE. ENDIF.
+
+      IF <fs_task>-DueDate > <fs_milestone>-DueDate.
+        APPEND VALUE #( %tky = <fs_task>-%tky ) TO failed-task.
+        APPEND VALUE #(
+            %tky = <fs_task>-%tky
+            %msg = new_message(
+                    id = 'ZPPM_MESSAGES'
+                    number = '003'
+                    severity = if_abap_behv_message=>severity-error )
+            %element-DueDate = if_abap_behv=>mk-on
+            %state_area = zif_ppm_state_area=>state_area-task_due_date
+            %path = VALUE #( Project-ProjectUuid = <fs_milestone>-ProjectUuid
+                             Project-%is_draft = <fs_milestone>-%is_draft
+                             Milestone-%is_draft = <fs_task>-%is_draft
+                             Milestone-MilestoneUuid = <fs_task>-MilestoneUuid )
+         ) TO reported-task.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
 
 ENDCLASS.
 
@@ -153,31 +209,31 @@ CLASS lhc_milestone IMPLEMENTATION.
     ENTITY Project
     FIELDS ( StartDate EndDate )
     WITH lt_project_keys
-    RESULT data(lt_projects).
+    RESULT DATA(lt_projects).
 
     LOOP AT lt_milestones ASSIGNING FIELD-SYMBOL(<fs_milestone>).
-        " Invalidate state messages
+      " Invalidate state messages
       APPEND VALUE #(
           %tky = <fs_milestone>-%tky
           %state_area = zif_ppm_state_area=>state_area-milestone_due_date
        ) TO reported-milestone.
 
-        if <fs_milestone>-DueDate < lt_projects[ 1 ]-StartDate
-        or <fs_milestone>-DueDate > lt_projects[ 1 ]-EndDate.
-            APPEND VALUE #( %tky = <fs_milestone>-%tky ) to failed-milestone.
-            APPEND VALUE #(
-                %tky = <fs_milestone>-%tky
-                %msg = new_message(
-                        id = 'ZPPM_MESSAGES'
-                        number = '002'
-                        severity = if_abap_behv_message=>severity-error )
-                %element-DueDate = if_abap_behv=>mk-on
-                %state_area = zif_ppm_state_area=>state_area-milestone_due_date
-                %path = VALUE #(
-                                    Project-%is_draft = <fs_milestone>-%is_draft
-                                    Project-ProjectUuid = <fs_milestone>-ProjectUuid )
-             ) to reported-milestone.
-        ENDIF.
+      IF <fs_milestone>-DueDate < lt_projects[ 1 ]-StartDate
+      OR <fs_milestone>-DueDate > lt_projects[ 1 ]-EndDate.
+        APPEND VALUE #( %tky = <fs_milestone>-%tky ) TO failed-milestone.
+        APPEND VALUE #(
+            %tky = <fs_milestone>-%tky
+            %msg = new_message(
+                    id = 'ZPPM_MESSAGES'
+                    number = '002'
+                    severity = if_abap_behv_message=>severity-error )
+            %element-DueDate = if_abap_behv=>mk-on
+            %state_area = zif_ppm_state_area=>state_area-milestone_due_date
+            %path = VALUE #(
+                                Project-%is_draft = <fs_milestone>-%is_draft
+                                Project-ProjectUuid = <fs_milestone>-ProjectUuid )
+         ) TO reported-milestone.
+      ENDIF.
     ENDLOOP.
 
   ENDMETHOD.
