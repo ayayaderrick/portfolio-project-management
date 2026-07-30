@@ -132,6 +132,8 @@ CLASS lhc_milestone DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR Milestone~setMilestoneId.
     METHODS validateMilestoneDueDate FOR VALIDATE ON SAVE
       IMPORTING keys FOR Milestone~validateMilestoneDueDate.
+    METHODS validateSequenceNumber FOR VALIDATE ON SAVE
+      IMPORTING keys FOR Milestone~validateSequenceNumber.
 
 ENDCLASS.
 
@@ -219,9 +221,9 @@ CLASS lhc_milestone IMPLEMENTATION.
        ) TO reported-milestone.
 
       ASSIGN lt_projects[ ProjectUuid = <fs_milestone>-ProjectUuid
-                          %is_draft = <fs_milestone>-%is_draft ] to FIELD-SYMBOL(<fs_project>).
+                          %is_draft = <fs_milestone>-%is_draft ] TO FIELD-SYMBOL(<fs_project>).
 
-      if sy-subrc <> 0. RETURN. ENDIF.
+      IF sy-subrc <> 0. RETURN. ENDIF.
 
       IF <fs_milestone>-DueDate < <fs_project>-StartDate
       OR <fs_milestone>-DueDate > <fs_project>-EndDate.
@@ -237,6 +239,79 @@ CLASS lhc_milestone IMPLEMENTATION.
             %path = VALUE #(
                                 Project-%is_draft = <fs_milestone>-%is_draft
                                 Project-ProjectUuid = <fs_milestone>-ProjectUuid )
+         ) TO reported-milestone.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD validateSequenceNumber.
+
+    " Read SequenceNo and ProjectUuid for the milestones being saved
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone
+    FIELDS ( ProjectUuid SequenceNo )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_target_milestones).
+
+    IF lt_target_milestones IS INITIAL. RETURN. ENDIF.
+
+    " Collect unique Project IDs to read ALL milestones within those projects
+    DATA lt_project_keys TYPE TABLE FOR READ IMPORT zr_ppm_project\_Milestone.
+
+    lt_project_keys = VALUE #( FOR milestone IN lt_target_milestones (
+        %key-ProjectUUID = milestone-ProjectUuid
+        %is_draft = milestone-%is_draft
+     ) ).
+
+    SORT lt_project_keys BY %key-ProjectUUID %is_draft.
+    DELETE ADJACENT DUPLICATES FROM lt_project_keys COMPARING %key-ProjectUUID %is_draft.
+
+    " Read ALL sibling milestones (captures both Draft buffer and Active DB data)
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project BY \_Milestone
+    FIELDS ( SequenceNo )
+    WITH lt_project_keys
+    RESULT DATA(lt_all_milestones).
+
+    " Group and evaluate duplicates
+    LOOP AT lt_target_milestones ASSIGNING FIELD-SYMBOL(<fs_milestone>).
+      " Clear any previous state messages for SequenceNumber on this instance
+      APPEND VALUE #(
+          %tky = <fs_milestone>-%tky
+          %state_area = zif_ppm_state_area=>state_area-sequence_no
+       ) TO reported-milestone.
+
+      " Skip validation if sequence number is not provided yet
+      IF <fs_milestone>-SequenceNo IS INITIAL. RETURN. ENDIF.
+
+      " Count how many milestones in the same project share this sequence number
+      DATA(lv_match_count) = REDUCE i(
+         INIT count = 0
+         FOR m IN lt_all_milestones
+         WHERE ( ProjectUuid = <fs_milestone>-ProjectUuid AND
+                 SequenceNo = <fs_milestone>-SequenceNo AND
+                 %is_draft = <fs_milestone>-%is_draft )
+         NEXT count = count + 1
+      ).
+
+      " If count > 1, a duplicate exists within the project context
+      IF lv_match_count > 1.
+        " Mark instance as failed to block the save operation
+        APPEND VALUE #( %tky = <fs_milestone>-%tky ) TO failed-milestone.
+        " Report the state message targeted directly at the SequenceNumber field
+        APPEND VALUE #(
+            %tky = <fs_milestone>-%tky
+            %msg = new_message(
+                    id = 'ZPPM_MESSAGES'
+                    number = '004'
+                    v1 = <fs_milestone>-SequenceNo
+                    severity = if_abap_behv_message=>severity-error
+             )
+            %element-SequenceNo = if_abap_behv=>mk-on
+            %state_area = zif_ppm_state_area=>state_area-sequence_no
+            %path = VALUE #( Project-ProjectUuid = <fs_milestone>-ProjectUuid
+                             Project-%is_draft = <fs_milestone>-%is_draft )
          ) TO reported-milestone.
       ENDIF.
     ENDLOOP.
