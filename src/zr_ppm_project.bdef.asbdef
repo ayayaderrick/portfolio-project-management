@@ -3,24 +3,26 @@ strict ( 2 );
 with draft;
 extensible;
 define behavior for ZR_PPM_PROJECT alias Project
-persistent table ZPPM_PROJECT_A
+persistent table zppm_project_a
 extensible
-draft table ZPPM_PROJECT_D
+draft table zppm_project_d
 etag master LocalLastChangedAt
 lock master
 total etag LastChangedAt
-authorization master( global )
+authorization master ( global )
 {
   field ( readonly )
-   ProjectUUID, ProjectID, CompletionPercentage, CreatedBy,
-   CreatedAt, LocalLastChangedBy, LocalLastChangedAt, LastChangedAt;
+  ProjectUUID, ProjectID, CompletionPercentage, CreatedBy,
+  CreatedAt, LocalLastChangedBy, LocalLastChangedAt, LastChangedAt;
 
   field ( numbering : managed )
-   ProjectUUID;
+  ProjectUUID;
 
   determination setProjectId on modify { create; }
+  validation validateProjectDates on save { create; update; }
 
-  association _Milestone {create; with draft;}
+
+  association _Milestone { create; with draft; }
 
   create;
   update;
@@ -30,105 +32,114 @@ authorization master( global )
   draft action Discard;
   draft action Edit;
   draft action Resume;
-  draft determine action Prepare;
+  draft determine action Prepare{
+    validation validateProjectDates;
+    validation Milestone~validateMilestoneDueDate;
+    validation Task~validateTaskDueDate;
+    validation Milestone~validateSequenceNumber;
+    validation Task~validateCompletedTask; }
 
-  mapping for ZPPM_PROJECT_A corresponding extensible
-  {
-    ProjectUUID = PROJECT_UUID;
-    ProjectID = PROJECT_ID;
-    ProjectName = PROJECT_NAME;
-    Description = DESCRIPTION;
-    StartDate = START_DATE;
-    EndDate = END_DATE;
-    Status = STATUS;
-    CompletionPercentage = completion_percentage;
-    CreatedBy = CREATED_BY;
-    CreatedAt = CREATED_AT;
-    LocalLastChangedBy = LOCAL_LAST_CHANGED_BY;
-    LocalLastChangedAt = LOCAL_LAST_CHANGED_AT;
-    LastChangedAt = LAST_CHANGED_AT;
-  }
+  mapping for zppm_project_a corresponding extensible
+    {
+      ProjectUUID          = PROJECT_UUID;
+      ProjectID            = PROJECT_ID;
+      ProjectName          = PROJECT_NAME;
+      Description          = DESCRIPTION;
+      StartDate            = START_DATE;
+      EndDate              = END_DATE;
+      Status               = STATUS;
+      CompletionPercentage = completion_percentage;
+      CreatedBy            = CREATED_BY;
+      CreatedAt            = CREATED_AT;
+      LocalLastChangedBy   = LOCAL_LAST_CHANGED_BY;
+      LocalLastChangedAt   = LOCAL_LAST_CHANGED_AT;
+      LastChangedAt        = LAST_CHANGED_AT;
+    }
 
 }
 
 define behavior for ZR_PPM_MILESTONE alias Milestone
-persistent table ZPPM_MILESTONE_A
-draft table ZPPM_MILESTOME_D
+persistent table zppm_milestone_a
+draft table zppm_milestome_d
 lock dependent by _Project
 authorization dependent by _Project
 {
   field ( readonly )
-   MilestoneUuid, ProjectUuid, MilestoneId, CreatedBy,
-   CreatedAt, LocalLastChangedBy, LocalLastChangedAt, LastChangedAt;
+  MilestoneUuid, ProjectUuid, MilestoneId, CreatedBy,
+  CreatedAt, LocalLastChangedBy, LocalLastChangedAt, LastChangedAt;
 
   field ( numbering : managed )
-   MilestoneUuid;
+  MilestoneUuid;
 
   determination setMilestoneId on modify { create; }
+  validation validateMilestoneDueDate on save { create; update; }
+  validation validateSequenceNumber on save { create; update; }
 
-  association _Project{ with draft;}
-  association _Task {create; with draft;}
+  association _Project { with draft; }
+  association _Task { create; with draft; }
 
   update;
   delete;
 
-  mapping for ZPPM_MILESTONE_A corresponding
-  {
-    MilestoneUuid = milestone_uuid;
-    ProjectUuid = project_uuid;
-    MilestoneId = milestone_id;
-    MilestoneName = milestone_name;
-    Description = description;
-    SequenceNo = sequence_no;
-    DueDate = due_date;
-    Status = status;
-    CreatedBy = CREATED_BY;
-    CreatedAt = CREATED_AT;
-    LocalLastChangedBy = LOCAL_LAST_CHANGED_BY;
-    LocalLastChangedAt = LOCAL_LAST_CHANGED_AT;
-    LastChangedAt = LAST_CHANGED_AT;
-  }
+  mapping for zppm_milestone_a corresponding
+    {
+      MilestoneUuid      = milestone_uuid;
+      ProjectUuid        = project_uuid;
+      MilestoneId        = milestone_id;
+      MilestoneName      = milestone_name;
+      Description        = description;
+      SequenceNo         = sequence_no;
+      DueDate            = due_date;
+      Status             = status;
+      CreatedBy          = CREATED_BY;
+      CreatedAt          = CREATED_AT;
+      LocalLastChangedBy = LOCAL_LAST_CHANGED_BY;
+      LocalLastChangedAt = LOCAL_LAST_CHANGED_AT;
+      LastChangedAt      = LAST_CHANGED_AT;
+    }
 }
 
 
 define behavior for ZR_PPM_TASK alias Task
-persistent table ZPPM_TASK_A
-draft table ZPPM_TASK_D
+persistent table zppm_task_a
+draft table zppm_task_d
 lock dependent by _Project
 authorization dependent by _Project
 {
   field ( readonly )
-   TaskUuid, MilestoneUuid, ProjectUuid, TaskId,
-   CreatedBy, CreatedAt, LocalLastChangedBy, LocalLastChangedAt,
-   LastChangedAt;
+  TaskUuid, MilestoneUuid, ProjectUuid, TaskId,
+  CreatedBy, CreatedAt, LocalLastChangedBy, LocalLastChangedAt,
+  LastChangedAt;
 
   field ( numbering : managed )
-   TaskUuid;
+  TaskUuid;
 
   determination setTaskId on modify { create; }
+  validation validateTaskDueDate on save { create; update; }
+  validation validateCompletedTask on save { create; update; }
 
-  association _Milestone{ with draft;}
-  association _Project{ with draft;}
+  association _Milestone { with draft; }
+  association _Project { with draft; }
 
   update;
   delete;
 
-  mapping for ZPPM_TASK_A corresponding
-  {
-    TaskUuid = task_uuid;
-    MilestoneUuid = milestone_uuid;
-    ProjectUuid = project_uuid;
-    TaskId = task_id;
-    TaskName = task_name;
-    Description = description;
-    AssignedTo = assigned_to;
-    Priority = priority;
-    Status = status;
-    DueDate = due_date;
-    CreatedBy = CREATED_BY;
-    CreatedAt = CREATED_AT;
-    LocalLastChangedBy = LOCAL_LAST_CHANGED_BY;
-    LocalLastChangedAt = LOCAL_LAST_CHANGED_AT;
-    LastChangedAt = LAST_CHANGED_AT;
-  }
+  mapping for zppm_task_a corresponding
+    {
+      TaskUuid           = task_uuid;
+      MilestoneUuid      = milestone_uuid;
+      ProjectUuid        = project_uuid;
+      TaskId             = task_id;
+      TaskName           = task_name;
+      Description        = description;
+      AssignedTo         = assigned_to;
+      Priority           = priority;
+      Status             = status;
+      DueDate            = due_date;
+      CreatedBy          = CREATED_BY;
+      CreatedAt          = CREATED_AT;
+      LocalLastChangedBy = LOCAL_LAST_CHANGED_BY;
+      LocalLastChangedAt = LOCAL_LAST_CHANGED_AT;
+      LastChangedAt      = LAST_CHANGED_AT;
+    }
 }

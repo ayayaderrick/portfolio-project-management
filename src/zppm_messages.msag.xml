@@ -14,6 +14,30 @@
      <MSGNR>001</MSGNR>
      <TEXT>Project end date must be on or after the start date.</TEXT>
     </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZPPM_MESSAGES</ARBGB>
+     <MSGNR>002</MSGNR>
+     <TEXT>Due Date should be after Project Start Date and before Project End Date.</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZPPM_MESSAGES</ARBGB>
+     <MSGNR>003</MSGNR>
+     <TEXT>Task Due Date must not be later than the Milestone Due date.</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZPPM_MESSAGES</ARBGB>
+     <MSGNR>004</MSGNR>
+     <TEXT>Sequence Number &amp;1 already exists within this project.</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZPPM_MESSAGES</ARBGB>
+     <MSGNR>005</MSGNR>
+     <TEXT>Completed tasks must have an assigned owner.</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>
