@@ -6,6 +6,8 @@ CLASS lhc_task DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR Task~setTaskId.
     METHODS validateTaskDueDate FOR VALIDATE ON SAVE
       IMPORTING keys FOR Task~validateTaskDueDate.
+    METHODS validateCompletedTask FOR VALIDATE ON SAVE
+      IMPORTING keys FOR Task~validateCompletedTask.
 
 ENDCLASS.
 
@@ -117,6 +119,68 @@ CLASS lhc_task IMPLEMENTATION.
                              Milestone-%is_draft = <fs_task>-%is_draft
                              Milestone-MilestoneUuid = <fs_task>-MilestoneUuid )
          ) TO reported-task.
+      ENDIF.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD validateCompletedTask.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    FIELDS ( MilestoneUuid AssignedTo Status )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_tasks).
+
+    IF keys IS INITIAL. RETURN. ENDIF.
+
+    " Get Root Project Uuids by reading the parent Milestone entities
+    DATA lt_milestone_keys TYPE TABLE FOR READ IMPORT zr_ppm_project\\Milestone.
+
+    lt_milestone_keys = VALUE #( FOR task IN lt_tasks ( %key-MilestoneUuid = task-MilestoneUuid
+                                                        %is_draft = task-%is_draft ) ).
+
+    SORT lt_milestone_keys BY MilestoneUuid %is_draft.
+    DELETE ADJACENT DUPLICATES FROM lt_milestone_keys COMPARING MilestoneUuid %is_draft.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone
+    FIELDS ( ProjectUuid DueDate )
+    WITH lt_milestone_keys
+    RESULT DATA(lt_milestones).
+
+    LOOP AT lt_tasks ASSIGNING FIELD-SYMBOL(<fs_task>).
+      " Clear existing state messages for this instance
+      APPEND VALUE #( %tky = <fs_task>-%tky
+                      %state_area = zif_ppm_state_area=>state_area-completed_task ) TO reported-task.
+
+      " Ignore incomplete records
+      IF <fs_task>-Status IS INITIAL. CONTINUE. ENDIF.
+
+      " Read corresponding milestone safely
+      ASSIGN lt_milestones[ MilestoneUuid = <fs_task>-MilestoneUuid
+                            %is_draft = <fs_task>-%is_draft ] TO FIELD-SYMBOL(<fs_milestone>).
+
+      IF sy-subrc <> 0. CONTINUE. ENDIF.
+
+      " Validate only completed tasks with assigned owner
+      IF <fs_task>-Status = zif_ppm_constants=>task_status-done
+      AND <fs_task>-AssignedTo IS INITIAL.
+        APPEND VALUE #( %tky = <fs_task>-%tky ) TO failed-task.
+        APPEND VALUE #(
+                        %tky = <fs_task>-%tky
+                        %msg = new_message(
+                                id = 'ZPPM_MESSAGES'
+                                number = '005'
+                                severity = if_abap_behv_message=>severity-error )
+                        %element-AssignedTo = if_abap_behv=>mk-on
+                        %state_area = zif_ppm_state_area=>state_area-completed_task
+                        %path = VALUE #( Project-ProjectUuid = <fs_milestone>-ProjectUuid
+                                         Project-%is_draft = <fs_milestone>-%is_draft
+                                         Milestone-%is_draft = <fs_task>-%is_draft
+                                         Milestone-MilestoneUuid = <fs_task>-MilestoneUuid )
+             ) TO reported-task.
+
       ENDIF.
     ENDLOOP.
 
