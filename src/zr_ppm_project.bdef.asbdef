@@ -36,7 +36,8 @@ authorization master ( global )
     validation validateProjectDates;
     validation Milestone~validateMilestoneDueDate;
     validation Task~validateTaskDueDate;
-    validation Milestone~validateSequenceNumber; }
+    validation Milestone~validateSequenceNumber;
+    validation Task~validateCompletedTask; }
 
   mapping for zppm_project_a corresponding extensible
     {
@@ -115,6 +116,7 @@ authorization dependent by _Project
 
   determination setTaskId on modify { create; }
   validation validateTaskDueDate on save { create; update; }
+  validation validateCompletedTask on save { create; update; }
 
   association _Milestone { with draft; }
   association _Project { with draft; }
