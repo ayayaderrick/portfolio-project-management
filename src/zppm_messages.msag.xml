@@ -26,6 +26,12 @@
      <MSGNR>003</MSGNR>
      <TEXT>Task Due Date must not be later than the Milestone Due date.</TEXT>
     </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZPPM_MESSAGES</ARBGB>
+     <MSGNR>004</MSGNR>
+     <TEXT>Sequence Number &amp;1 already exists within this project.</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>
