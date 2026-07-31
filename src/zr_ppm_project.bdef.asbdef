@@ -115,6 +115,8 @@ authorization dependent by _Project
   TaskUuid;
 
   determination setTaskId on modify { create; }
+  determination calculateProjectCompletion on modify { field Status; create; delete; }
+
   validation validateTaskDueDate on save { create; update; }
   validation validateCompletedTask on save { create; update; }
 
