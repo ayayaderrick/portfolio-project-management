@@ -199,7 +199,7 @@ CLASS lhc_task IMPLEMENTATION.
     " Get the Root Project UUIDs for all modified Tasks to handle mass processing
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Task
-    FIELDS ( MilestoneUuid Status )
+    FIELDS ( MilestoneUuid )
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_tasks).
 
@@ -227,6 +227,47 @@ CLASS lhc_task IMPLEMENTATION.
 
     SORT lt_project_keys BY ProjectUUID %is_draft.
     DELETE ADJACENT DUPLICATES FROM lt_project_keys COMPARING ProjectUUID %is_draft.
+
+    LOOP AT lt_project_keys ASSIGNING FIELD-SYMBOL(<fs_proj_key>).
+      CLEAR: lv_total_tasks, lv_done_tasks, lv_pecentage.
+
+      READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project BY \_Milestone
+      FROM VALUE #( ( %tky = <fs_proj_key>-%tky ) )
+      RESULT DATA(lt_all_milestones)
+      ENTITY Milestone BY \_Task
+      FIELDS ( Status )
+      WITH VALUE #( FOR mstn IN lt_all_milestones ( %tky = mstn-%tky ) )
+      RESULT DATA(lt_all_project_tasks).
+
+      lv_total_tasks = lines( lt_all_project_tasks ).
+
+      IF lv_total_tasks > 0.
+        lv_done_tasks = REDUCE i( INIT count = 0
+                            FOR task IN lt_all_project_tasks
+                            WHERE ( Status = zif_ppm_constants=>task_status-done )
+                            NEXT count += 1 ).
+        lv_pecentage = ( lv_done_tasks / lv_total_tasks ) * 100.
+      ELSE.
+        lv_pecentage = 0.
+      ENDIF.
+
+      " Prepare the update structure for the root entity
+      APPEND VALUE #(
+          %tky = <fs_proj_key>-%tky
+          CompletionPercentage = lv_pecentage
+          %control-CompletionPercentage = if_abap_behv=>mk-on
+       ) TO lt_project_update.
+    ENDLOOP.
+
+    " Update the Project root entity with the new percentage
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    UPDATE FIELDS ( CompletionPercentage )
+    WITH lt_project_update
+    REPORTED DATA(lt_reported_modify).
+
+    reported = CORRESPONDING #( DEEP lt_reported_modify ).
 
   ENDMETHOD.
 
