@@ -203,7 +203,7 @@ CLASS lhc_task IMPLEMENTATION.
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_tasks).
 
-    IF keys IS INITIAL. RETURN. ENDIF.
+    IF lt_tasks IS INITIAL. RETURN. ENDIF.
 
     " Get Root Project Uuids by reading the parent Milestone entities
     DATA lt_milestone_keys TYPE TABLE FOR READ IMPORT zr_ppm_project\\Milestone.
@@ -219,6 +219,8 @@ CLASS lhc_task IMPLEMENTATION.
     FIELDS ( ProjectUuid )
     WITH lt_milestone_keys
     RESULT DATA(lt_milestones).
+
+    IF lt_milestones IS INITIAL. RETURN. ENDIF.
 
     DATA lt_project_keys TYPE TABLE FOR READ IMPORT zr_ppm_project.
 
@@ -246,8 +248,8 @@ CLASS lhc_task IMPLEMENTATION.
         lv_done_tasks = REDUCE i( INIT count = 0
                             FOR task IN lt_all_project_tasks
                             WHERE ( Status = zif_ppm_constants=>task_status-done )
-                            NEXT count += 1 ).
-        lv_pecentage = ( lv_done_tasks / lv_total_tasks ) * 100.
+                            NEXT count = count + 1 ).
+        lv_pecentage = ( lv_done_tasks * 100 ) / lv_total_tasks.
       ELSE.
         lv_pecentage = 0.
       ENDIF.
