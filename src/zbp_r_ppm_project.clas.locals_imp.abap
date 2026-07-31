@@ -8,6 +8,9 @@ CLASS lhc_task DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR Task~validateTaskDueDate.
     METHODS validateCompletedTask FOR VALIDATE ON SAVE
       IMPORTING keys FOR Task~validateCompletedTask.
+    METHODS calculateProjectCompletion FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR Task~calculateProjectCompletion.
+
 
 ENDCLASS.
 
@@ -183,6 +186,47 @@ CLASS lhc_task IMPLEMENTATION.
 
       ENDIF.
     ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD calculateProjectCompletion.
+
+    DATA: lt_project_update TYPE TABLE FOR UPDATE zr_ppm_project,
+          lv_total_tasks    TYPE i,
+          lv_done_tasks     TYPE i,
+          lv_pecentage      TYPE p LENGTH 3 DECIMALS 2.
+
+    " Get the Root Project UUIDs for all modified Tasks to handle mass processing
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    FIELDS ( MilestoneUuid Status )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_tasks).
+
+    IF keys IS INITIAL. RETURN. ENDIF.
+
+    " Get Root Project Uuids by reading the parent Milestone entities
+    DATA lt_milestone_keys TYPE TABLE FOR READ IMPORT zr_ppm_project\\Milestone.
+
+    lt_milestone_keys = VALUE #( FOR task IN lt_tasks ( %key-MilestoneUuid = task-MilestoneUuid
+                                                        %is_draft = task-%is_draft ) ).
+
+    SORT lt_milestone_keys BY MilestoneUuid %is_draft.
+    DELETE ADJACENT DUPLICATES FROM lt_milestone_keys COMPARING MilestoneUuid %is_draft.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone
+    FIELDS ( ProjectUuid )
+    WITH lt_milestone_keys
+    RESULT DATA(lt_milestones).
+
+    DATA lt_project_keys TYPE TABLE FOR READ IMPORT zr_ppm_project.
+
+    lt_project_keys = VALUE #( FOR milestone IN lt_milestones ( %key-ProjectUUID = milestone-ProjectUuid
+                                                                %is_draft = milestone-%is_draft ) ).
+
+    SORT lt_project_keys BY ProjectUUID %is_draft.
+    DELETE ADJACENT DUPLICATES FROM lt_project_keys COMPARING ProjectUUID %is_draft.
 
   ENDMETHOD.
 
