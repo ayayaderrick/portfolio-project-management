@@ -194,9 +194,12 @@ CLASS lhc_task IMPLEMENTATION.
     DATA: lt_project_update TYPE TABLE FOR UPDATE zr_ppm_project,
           lv_total_tasks    TYPE i,
           lv_done_tasks     TYPE i,
-          lv_pecentage      TYPE p LENGTH 3 DECIMALS 2.
+          lv_percentage     TYPE zppm_percentage,
+          lv_percentage_df  TYPE decfloat34.
 
-    " Get the Root Project UUIDs for all modified Tasks to handle mass processing
+    "-----------------------------------------------------------------------
+    " Read modified tasks
+    "-----------------------------------------------------------------------
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Task
     FIELDS ( MilestoneUuid )
@@ -205,7 +208,9 @@ CLASS lhc_task IMPLEMENTATION.
 
     IF lt_tasks IS INITIAL. RETURN. ENDIF.
 
-    " Get Root Project Uuids by reading the parent Milestone entities
+    "-----------------------------------------------------------------------
+    " Read affected milestones
+    "-----------------------------------------------------------------------
     DATA lt_milestone_keys TYPE TABLE FOR READ IMPORT zr_ppm_project\\Milestone.
 
     lt_milestone_keys = VALUE #( FOR task IN lt_tasks ( %key-MilestoneUuid = task-MilestoneUuid
@@ -222,6 +227,9 @@ CLASS lhc_task IMPLEMENTATION.
 
     IF lt_milestones IS INITIAL. RETURN. ENDIF.
 
+    "-----------------------------------------------------------------------
+    " Determine affected projects
+    "-----------------------------------------------------------------------
     DATA lt_project_keys TYPE TABLE FOR READ IMPORT zr_ppm_project.
 
     lt_project_keys = VALUE #( FOR milestone IN lt_milestones ( %key-ProjectUUID = milestone-ProjectUuid
@@ -231,45 +239,57 @@ CLASS lhc_task IMPLEMENTATION.
     DELETE ADJACENT DUPLICATES FROM lt_project_keys COMPARING ProjectUUID %is_draft.
 
     LOOP AT lt_project_keys ASSIGNING FIELD-SYMBOL(<fs_proj_key>).
-      CLEAR: lv_total_tasks, lv_done_tasks, lv_pecentage.
+      CLEAR: lv_total_tasks, lv_done_tasks, lv_percentage, lv_percentage_df.
 
+      "---------------------------------------------------------------
+      " Read complete Project hierarchy
+      "---------------------------------------------------------------
       READ ENTITIES OF zr_ppm_project IN LOCAL MODE
       ENTITY Project BY \_Milestone
-      FROM VALUE #( ( %tky = <fs_proj_key>-%tky ) )
-      RESULT DATA(lt_all_milestones)
+      ALL FIELDS
+      WITH CORRESPONDING #( lt_project_keys )
+      LINK DATA(lt_project_milestone_links)
+      RESULT DATA(lt_all_milestones).
+
+      READ ENTITIES OF zr_ppm_project IN LOCAL MODE
       ENTITY Milestone BY \_Task
       FIELDS ( Status )
-      WITH VALUE #( FOR mstn IN lt_all_milestones ( %tky = mstn-%tky ) )
-      RESULT DATA(lt_all_project_tasks).
+      WITH CORRESPONDING #( lt_all_milestones )
+      LINK DATA(lt_milestone_task_links)
+      RESULT DATA(lt_all_tasks).
 
-      lv_total_tasks = lines( lt_all_project_tasks ).
+
+      lv_total_tasks = lines( lt_all_tasks ).
 
       IF lv_total_tasks > 0.
         lv_done_tasks = REDUCE i( INIT count = 0
-                            FOR task IN lt_all_project_tasks
+                            FOR task IN lt_all_tasks
                             WHERE ( Status = zif_ppm_constants=>task_status-done )
                             NEXT count = count + 1 ).
-        lv_pecentage = ( lv_done_tasks * 100 ) / lv_total_tasks.
+        lv_percentage_df = ( CONV decfloat34( lv_done_tasks ) * 100 ) / CONV decfloat34( lv_total_tasks ).
+        lv_percentage = CONV zppm_percentage( lv_percentage_df ).
       ELSE.
-        lv_pecentage = 0.
+        lv_percentage = 0.
       ENDIF.
 
       " Prepare the update structure for the root entity
       APPEND VALUE #(
           %tky = <fs_proj_key>-%tky
-          CompletionPercentage = lv_pecentage
+          CompletionPercentage = lv_percentage
           %control-CompletionPercentage = if_abap_behv=>mk-on
        ) TO lt_project_update.
     ENDLOOP.
 
     " Update the Project root entity with the new percentage
-    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
-    ENTITY Project
-    UPDATE FIELDS ( CompletionPercentage )
-    WITH lt_project_update
-    REPORTED DATA(lt_reported_modify).
+    IF lt_project_update IS NOT INITIAL.
+      MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project
+      UPDATE FIELDS ( CompletionPercentage )
+      WITH lt_project_update
+      REPORTED DATA(lt_reported_modify).
 
-    reported = CORRESPONDING #( DEEP lt_reported_modify ).
+      reported = CORRESPONDING #( DEEP lt_reported_modify ).
+    ENDIF.
 
   ENDMETHOD.
 
