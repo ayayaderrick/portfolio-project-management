@@ -335,11 +335,6 @@ CLASS lhc_task IMPLEMENTATION.
       "-----------------------------------------------------------------------
       " Read Milestone and all child Tasks
       "-----------------------------------------------------------------------
-*      READ ENTITIES OF zr_ppm_project IN LOCAL MODE
-*      ENTITY Milestone
-*      FIELDS ( Status )
-*      WITH CORRESPONDING #( lt_milestone_keys )
-*      RESULT DATA(lt_milestones).
 
       READ ENTITIES OF zr_ppm_project IN LOCAL MODE
       ENTITY Milestone BY \_Task
