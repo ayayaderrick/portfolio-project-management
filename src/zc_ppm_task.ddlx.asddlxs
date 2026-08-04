@@ -5,6 +5,12 @@
     title : { type: #STANDARD, value: 'TaskName' },
     description : { type: #STANDARD, value : 'TaskId' }
  }
+@UI.presentationVariant: [{
+  sortOrder: [{
+      by: 'TaskId',
+      direction: #ASC
+  }]
+}]
 annotate view ZC_PPM_TASK with
 {
 
