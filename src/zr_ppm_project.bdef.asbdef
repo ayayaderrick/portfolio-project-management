@@ -72,6 +72,7 @@ authorization dependent by _Project
   MilestoneUuid;
 
   determination setMilestoneId on modify { create; }
+  determination synchronizeMilestoneStatus on modify { field Status; create; update; delete; }
   validation validateMilestoneDueDate on save { create; update; }
   validation validateSequenceNumber on save { create; update; }
 
