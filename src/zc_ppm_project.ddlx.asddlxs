@@ -5,6 +5,12 @@
     title : { type: #STANDARD, value: 'ProjectName' },
     description : { type: #STANDARD, value : 'ProjectId' }
  }
+@UI.presentationVariant: [{
+  sortOrder: [{
+      by: 'ProjectID',
+      direction: #ASC
+  }]
+}]
 annotate view ZC_PPM_PROJECT with
 {
   @UI.facet: [
