@@ -122,6 +122,9 @@ authorization dependent by _Project
   field ( numbering : managed )
   TaskUuid;
 
+  field ( mandatory )
+  TaskName, Description, Priority, DueDate;
+
   determination setTaskId on modify { create; }
   determination calculateProjectCompletion on modify { field Status; create; update; delete; }
   determination synchronizeMilestoneStatus on modify { field Status; create; update; delete; }
