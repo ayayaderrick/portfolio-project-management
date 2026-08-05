@@ -407,6 +407,8 @@ CLASS lhc_milestone DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR Milestone~validateMilestoneDueDate.
     METHODS validateSequenceNumber FOR VALIDATE ON SAVE
       IMPORTING keys FOR Milestone~validateSequenceNumber.
+    METHODS synchronizeProjectStatus FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR Milestone~synchronizeProjectStatus.
 
 
 ENDCLASS.
@@ -593,6 +595,111 @@ CLASS lhc_milestone IMPLEMENTATION.
   ENDMETHOD.
 
 
+
+  METHOD synchronizeProjectStatus.
+
+    DATA: lt_project_update       TYPE TABLE FOR UPDATE zr_ppm_project,
+          lv_total_milestones     TYPE i,
+          lv_new_milestones       TYPE i,
+          lv_inprogress_milestone TYPE i,
+          lv_completed_milestones TYPE i,
+          lv_new_status           TYPE zppm_project_status.
+
+    "-----------------------------------------------------------------------
+    " Read changed Milestones
+    "-----------------------------------------------------------------------
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone
+    FIELDS ( ProjectUuid )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_milestones).
+
+    IF lt_milestones IS INITIAL. RETURN. ENDIF.
+
+    "-----------------------------------------------------------------------
+    " Build unique Project keys
+    "-----------------------------------------------------------------------
+    DATA lt_project_keys TYPE TABLE FOR READ IMPORT zr_ppm_project.
+
+    lt_project_keys = VALUE #( FOR milestone IN lt_milestones (
+        %key-ProjectUUID = milestone-ProjectUuid
+        %is_draft = milestone-%is_draft
+     ) ).
+
+    SORT lt_project_keys BY ProjectUUID %is_draft.
+    DELETE ADJACENT DUPLICATES FROM lt_project_keys COMPARING ProjectUUID %is_draft.
+
+    "-----------------------------------------------------------------------
+    " Process each affected Project
+    "-----------------------------------------------------------------------
+    LOOP AT lt_project_keys ASSIGNING FIELD-SYMBOL(<fs_project_key>).
+      CLEAR: lv_total_milestones, lv_new_milestones, lv_inprogress_milestone, lv_completed_milestones, lv_new_status.
+
+      "-----------------------------------------------------------------------
+      " Read Project and child Milestones
+      "-----------------------------------------------------------------------
+      READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project BY \_Milestone
+      FIELDS ( Status )
+      WITH CORRESPONDING #( lt_project_keys )
+      LINK DATA(lt_project_links)
+      RESULT DATA(lt_all_milestones).
+
+      "-----------------------------------------------------------------------
+      " Count Milestone statuses
+      "-----------------------------------------------------------------------
+      lv_total_milestones = lines( lt_all_milestones ).
+
+      LOOP AT lt_all_milestones ASSIGNING FIELD-SYMBOL(<fs_milestone>).
+        CASE <fs_milestone>-Status.
+          WHEN zif_ppm_constants=>milestone_status-new.
+            lv_new_milestones += 1.
+          WHEN zif_ppm_constants=>milestone_status-completed.
+            lv_completed_milestones += 1.
+          WHEN OTHERS.
+            lv_inprogress_milestone += 1.
+        ENDCASE.
+      ENDLOOP.
+
+      "-----------------------------------------------------------------------
+      " Determine Project Status
+      "-----------------------------------------------------------------------
+      IF lv_total_milestones = 0.
+        lv_new_status = zif_ppm_constants=>project_status-new.
+      ELSEIF lv_completed_milestones = lv_total_milestones.
+        lv_new_status = zif_ppm_constants=>project_status-completed.
+      ELSEIF lv_new_milestones = lv_total_milestones.
+        lv_new_status = zif_ppm_constants=>project_status-new.
+      ELSE.
+        lv_new_status = zif_ppm_constants=>project_status-in_progress.
+      ENDIF.
+
+      "-----------------------------------------------------------------------
+      " Prepare the update table
+      "-----------------------------------------------------------------------
+      APPEND VALUE #(
+        %tky = <fs_project_key>-%tky
+        Status = lv_new_status
+        %control-Status = if_abap_behv=>mk-on
+       ) TO lt_project_update.
+
+    ENDLOOP.
+
+    "-----------------------------------------------------------------------
+    " Perfoem the update
+    "-----------------------------------------------------------------------
+    IF lt_project_update IS NOT INITIAL.
+      MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project
+      UPDATE FIELDS ( Status )
+      WITH lt_project_update
+      REPORTED DATA(lt_reported_modify).
+
+      reported = CORRESPONDING #( DEEP lt_reported_modify ).
+
+    ENDIF.
+
+  ENDMETHOD.
 
 ENDCLASS.
 
