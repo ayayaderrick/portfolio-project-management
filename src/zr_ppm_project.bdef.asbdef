@@ -18,6 +18,9 @@ authorization master ( global )
   field ( numbering : managed )
   ProjectUUID;
 
+  field ( mandatory)
+  ProjectName, Description, StartDate, EndDate;
+
   determination setProjectId on modify { create; }
   validation validateProjectDates on save { create; update; }
 
