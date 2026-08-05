@@ -74,6 +74,9 @@ authorization dependent by _Project
   field ( numbering : managed )
   MilestoneUuid;
 
+  field ( mandatory)
+  MilestoneName, Description, SequenceNo, DueDate;
+
   determination setMilestoneId on modify { create; }
   determination synchronizeProjectStatus on modify { field Status; create; update; delete; }
 
