@@ -5,6 +5,12 @@
     title : { type: #STANDARD, value: 'MilestoneName' },
     description : { type: #STANDARD, value : 'MilestoneId' }
  }
+@UI.presentationVariant: [{
+   sortOrder: [{
+       by: 'MilestoneId',
+       direction: #ASC
+   }]
+}]
 annotate view ZC_PPM_MILESTONE with
 {
   @UI.facet: [

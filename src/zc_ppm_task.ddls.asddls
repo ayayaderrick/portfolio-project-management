@@ -16,7 +16,7 @@ define view entity ZC_PPM_TASK
       Description,
       AssignedTo,
       @Consumption.valueHelpDefinition: [{
-        entity: { name: 'ZI_PPM_TASKSTATUS_VH', element: 'Code' }
+        entity: { name: 'ZI_PPM_PRIORITY_VH', element: 'Code' }
       }]
       Priority,
       @Consumption.filter.selectionType: #SINGLE

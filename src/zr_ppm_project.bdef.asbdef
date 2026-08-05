@@ -18,6 +18,9 @@ authorization master ( global )
   field ( numbering : managed )
   ProjectUUID;
 
+  field ( mandatory)
+  ProjectName, Description, StartDate, EndDate;
+
   determination setProjectId on modify { create; }
   validation validateProjectDates on save { create; update; }
 
@@ -71,7 +74,12 @@ authorization dependent by _Project
   field ( numbering : managed )
   MilestoneUuid;
 
+  field ( mandatory)
+  MilestoneName, Description, SequenceNo, DueDate;
+
   determination setMilestoneId on modify { create; }
+  determination synchronizeProjectStatus on modify { field Status; create; update; delete; }
+
   validation validateMilestoneDueDate on save { create; update; }
   validation validateSequenceNumber on save { create; update; }
 
@@ -114,7 +122,13 @@ authorization dependent by _Project
   field ( numbering : managed )
   TaskUuid;
 
+  field ( mandatory )
+  TaskName, Description, Priority, DueDate;
+
   determination setTaskId on modify { create; }
+  determination calculateProjectCompletion on modify { field Status; create; update; delete; }
+  determination synchronizeMilestoneStatus on modify { field Status; create; update; delete; }
+
   validation validateTaskDueDate on save { create; update; }
   validation validateCompletedTask on save { create; update; }
 
