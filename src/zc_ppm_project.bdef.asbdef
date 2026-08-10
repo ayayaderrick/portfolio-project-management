@@ -17,6 +17,8 @@ use etag
   use action Resume;
   use action Prepare;
 
+  use action startProject;
+
   use association _Milestone {create; with draft;}
 
 }
