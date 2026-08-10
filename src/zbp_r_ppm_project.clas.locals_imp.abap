@@ -715,7 +715,9 @@ CLASS lhc_zr_ppm_project DEFINITION INHERITING FROM cl_abap_behavior_handler.
       validateProjectDates FOR VALIDATE ON SAVE
         IMPORTING keys FOR Project~validateProjectDates,
       startProject FOR MODIFY
-        IMPORTING keys FOR ACTION Project~startProject RESULT result.
+        IMPORTING keys FOR ACTION Project~startProject RESULT result,
+      get_instance_features FOR INSTANCE FEATURES
+        IMPORTING keys REQUEST requested_features FOR Project RESULT result.
 ENDCLASS.
 
 CLASS lhc_zr_ppm_project IMPLEMENTATION.
@@ -883,10 +885,29 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
     "---------------------------------------------------------------------
     " Return the modified Project instances
     "---------------------------------------------------------------------
-    result = VALUE #( for project in lt_updated_projects (
+    result = VALUE #( FOR project IN lt_updated_projects (
                             %tky = project-%tky
                             %param = CORRESPONDING #( project ) ) ).
 
+
+  ENDMETHOD.
+
+  METHOD get_instance_features.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    FIELDS ( Status )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_projects)
+    REPORTED reported
+    FAILED failed.
+
+    result = VALUE #( FOR project IN lt_projects (
+        %tky = project-%tky
+        %action-startProject = COND #( WHEN project-Status = zif_ppm_constants=>project_status-new
+                                       THEN if_abap_behv=>fc-o-enabled
+                                       ELSE if_abap_behv=>fc-o-disabled )
+     ) ).
 
   ENDMETHOD.
 
