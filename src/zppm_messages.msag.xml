@@ -38,6 +38,12 @@
      <MSGNR>005</MSGNR>
      <TEXT>Completed tasks must have an assigned owner.</TEXT>
     </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZPPM_MESSAGES</ARBGB>
+     <MSGNR>006</MSGNR>
+     <TEXT>Only new projects can be started.</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>
