@@ -713,7 +713,11 @@ CLASS lhc_zr_ppm_project DEFINITION INHERITING FROM cl_abap_behavior_handler.
       setProjectId FOR DETERMINE ON MODIFY
         IMPORTING keys FOR Project~setProjectId,
       validateProjectDates FOR VALIDATE ON SAVE
-        IMPORTING keys FOR Project~validateProjectDates.
+        IMPORTING keys FOR Project~validateProjectDates,
+      startProject FOR MODIFY
+        IMPORTING keys FOR ACTION Project~startProject RESULT result,
+      get_instance_features FOR INSTANCE FEATURES
+        IMPORTING keys REQUEST requested_features FOR Project RESULT result.
 ENDCLASS.
 
 CLASS lhc_zr_ppm_project IMPLEMENTATION.
@@ -809,4 +813,118 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD startProject.
+
+    "---------------------------------------------------------------------
+    " Read the affected Project instances
+    "---------------------------------------------------------------------
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    FIELDS ( Status )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_projects)
+    REPORTED reported
+    FAILED failed.
+
+    IF lt_projects IS INITIAL. RETURN. ENDIF.
+
+    "---------------------------------------------------------------------
+    " Validate the requested status transition
+    "
+    " NEW -> IN_PROGRESS is the only valid transition for this action.
+    " ON_HOLD and CANCELLED are deliberately handled by their own
+    " actions later.
+    "---------------------------------------------------------------------
+    LOOP AT lt_projects ASSIGNING FIELD-SYMBOL(<fs_project>).
+      IF <fs_project>-Status <> zif_ppm_constants=>project_status-new.
+        APPEND VALUE #( %tky = <fs_project>-%tky ) TO failed-project.
+        APPEND VALUE #(
+            %tky = <fs_project>-%tky
+            %msg = new_message(
+                        id = 'ZPPM_MESSAGES'
+                        number = '006'
+                        severity = if_abap_behv_message=>severity-error )
+         ) TO reported-project.
+      ENDIF.
+    ENDLOOP.
+
+    "---------------------------------------------------------------------
+    " Remove projects that failed validation
+    "---------------------------------------------------------------------
+    DELETE lt_projects WHERE Status <> zif_ppm_constants=>project_status-new.
+
+    IF lt_projects IS INITIAL. RETURN. ENDIF.
+
+    "---------------------------------------------------------------------
+    " Change Project status
+    "---------------------------------------------------------------------
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    UPDATE FIELDS ( Status )
+    WITH VALUE #( FOR project IN lt_projects (
+                        %tky = project-%tky
+                        Status = zif_ppm_constants=>project_status-in_progress ) )
+    REPORTED DATA(lt_reported_modify)
+    FAILED DATA(lt_failed_modify).
+
+    "---------------------------------------------------------------------
+    " Propagate errors/messages from the MODIFY request
+    "---------------------------------------------------------------------
+    reported = CORRESPONDING #( lt_reported_modify ).
+    failed = CORRESPONDING #( lt_failed_modify ).
+
+    "---------------------------------------------------------------------
+    " Read changed Projects for the action result
+    "---------------------------------------------------------------------
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    ALL FIELDS
+    WITH CORRESPONDING #( lt_projects )
+    RESULT DATA(lt_updated_projects).
+
+    "---------------------------------------------------------------------
+    " Return the modified Project instances
+    "---------------------------------------------------------------------
+    result = VALUE #( FOR project IN lt_updated_projects (
+                            %tky = project-%tky
+                            %param = CORRESPONDING #( project ) ) ).
+
+
+  ENDMETHOD.
+
+  METHOD get_instance_features.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    FIELDS ( Status )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_projects)
+    REPORTED reported
+    FAILED failed.
+
+    result = VALUE #( FOR project IN lt_projects (
+        %tky = project-%tky
+        %action-startProject = COND #( WHEN project-Status = zif_ppm_constants=>project_status-new
+                                       THEN if_abap_behv=>fc-o-enabled
+                                       ELSE if_abap_behv=>fc-o-disabled )
+     ) ).
+
+  ENDMETHOD.
+
 ENDCLASS.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
