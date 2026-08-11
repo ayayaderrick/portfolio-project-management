@@ -19,6 +19,7 @@ use etag
 
   use action startProject;
   use action putOnHold;
+  use action resumeProject;
 
   use association _Milestone {create; with draft;}
 
