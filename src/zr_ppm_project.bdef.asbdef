@@ -25,6 +25,7 @@ authorization master ( global )
   validation validateProjectDates on save { create; update; }
 
   action ( features : instance ) startProject result [1] $self;
+  action ( features : instance) putOnHold result [1] $self;
 
   association _Milestone { create; with draft; }
 
