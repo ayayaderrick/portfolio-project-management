@@ -6,10 +6,8 @@
     description : { type: #STANDARD, value : 'MilestoneId' }
  }
 @UI.presentationVariant: [{
-   sortOrder: [{
-       by: 'MilestoneId',
-       direction: #ASC
-   }]
+   sortOrder: [{ by: 'MilestoneId', direction: #ASC }],
+   visualizations: [{type: #AS_LINEITEM}]
 }]
 annotate view ZC_PPM_MILESTONE with
 {
@@ -50,7 +48,7 @@ annotate view ZC_PPM_MILESTONE with
 
 
 
-  @UI.lineItem: [{ position: 10 }]
+  @UI.lineItem: [{ position: 5 }]
   @UI.identification: [{ position: 10 }]
   @UI.selectionField: [{ position: 10 }]
   @UI.fieldGroup: [{ qualifier: 'General', position: 10 }]
@@ -66,7 +64,7 @@ annotate view ZC_PPM_MILESTONE with
   @UI.fieldGroup: [{ qualifier: 'General', position: 30 }]
   Description;
 
-  @UI.lineItem: [{ position: 5 }]
+  @UI.lineItem: [{ position: 10 }]
   @UI.fieldGroup: [{ qualifier: 'General', position: 15 }]
   SequenceNo;
 

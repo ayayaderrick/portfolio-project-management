@@ -6,10 +6,8 @@
     description : { type: #STANDARD, value : 'ProjectId' }
  }
 @UI.presentationVariant: [{
-  sortOrder: [{
-      by: 'ProjectID',
-      direction: #ASC
-  }]
+  sortOrder: [{ by: 'ProjectID', direction: #ASC }],
+  visualizations: [{type: #AS_LINEITEM}]
 }]
 annotate view ZC_PPM_PROJECT with
 {
