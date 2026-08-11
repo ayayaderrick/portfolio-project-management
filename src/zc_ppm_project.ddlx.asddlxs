@@ -50,9 +50,11 @@ annotate view ZC_PPM_PROJECT with
 
   @UI.identification: [
   { type: #FOR_ACTION, dataAction: 'startProject', label: 'Start Project', emphasized: true },
+  { type: #FOR_ACTION, dataAction: 'putOnHold', label: 'Put On Hold' },
   { position: 10  } ]
   @UI.lineItem: [
   { type: #FOR_ACTION, dataAction: 'startProject', label: 'Start Project', emphasized: true },
+  { type: #FOR_ACTION, dataAction: 'putOnHold', label: 'Put On Hold' },
   { position: 10 , importance: #HIGH } ]
   @UI.selectionField: [ { position: 10 } ]
   @UI.fieldGroup: [{ qualifier: 'General', position: 10 }]
