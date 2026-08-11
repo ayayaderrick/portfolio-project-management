@@ -26,6 +26,7 @@ authorization master ( global )
 
   action ( features : instance ) startProject result [1] $self;
   action ( features : instance) putOnHold result [1] $self;
+  action ( features : instance) resumeProject result [1] $self;
 
   association _Milestone { create; with draft; }
 
