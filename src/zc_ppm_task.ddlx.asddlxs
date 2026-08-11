@@ -6,10 +6,8 @@
     description : { type: #STANDARD, value : 'TaskId' }
  }
 @UI.presentationVariant: [{
-  sortOrder: [{
-      by: 'TaskId',
-      direction: #ASC
-  }]
+  sortOrder: [{ by: 'TaskId', direction: #ASC }],
+  visualizations: [{type: #AS_LINEITEM}]
 }]
 annotate view ZC_PPM_TASK with
 {
