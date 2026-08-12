@@ -14,6 +14,10 @@ CLASS lhc_task DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR Task~synchronizeMilestoneStatus.
     METHODS startTask FOR MODIFY
       IMPORTING keys FOR ACTION Task~startTask RESULT result.
+    METHODS get_instance_features FOR INSTANCE FEATURES
+      IMPORTING keys REQUEST requested_features FOR Task RESULT result.
+    METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
+      IMPORTING REQUEST requested_authorizations FOR task RESULT result.
 
 
 ENDCLASS.
@@ -469,6 +473,28 @@ CLASS lhc_task IMPLEMENTATION.
     result = VALUE #( FOR task IN lt_updated_tasks ( %tky = task-%tky
                                                      %param = CORRESPONDING #( task ) ) ).
 
+  ENDMETHOD.
+
+  METHOD get_instance_features.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    FIELDS ( Status )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_tasks)
+    FAILED failed
+    REPORTED reported.
+
+    result = VALUE #( FOR task IN lt_tasks (
+        %tky = task-%tky
+        %action-startTask = COND #( WHEN task-Status = zif_ppm_constants=>task_status-open
+                                    THEN if_abap_behv=>fc-o-enabled
+                                    ELSE if_abap_behv=>fc-o-disabled )
+     ) ).
+
+  ENDMETHOD.
+
+  METHOD get_global_authorizations.
   ENDMETHOD.
 
 ENDCLASS.
