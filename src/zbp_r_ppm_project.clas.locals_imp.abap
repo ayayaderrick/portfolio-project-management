@@ -1161,6 +1161,11 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
         %action-resumeProject = COND #( WHEN project-Status = zif_ppm_constants=>project_status-on_hold
                                         THEN if_abap_behv=>fc-o-enabled
                                         ELSE if_abap_behv=>fc-o-disabled )
+        %action-cancelProject = COND #( WHEN project-Status = zif_ppm_constants=>project_status-new
+                                          OR project-Status = zif_ppm_constants=>project_status-in_progress
+                                          OR project-Status = zif_ppm_constants=>project_status-on_hold
+                                        THEN if_abap_behv=>fc-o-enabled
+                                        ELSE if_abap_behv=>fc-o-disabled )
      ) ).
 
   ENDMETHOD.
