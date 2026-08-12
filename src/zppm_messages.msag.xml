@@ -62,6 +62,12 @@
      <MSGNR>009</MSGNR>
      <TEXT>Only new, in-progress, or on-hold projects can be cancelled.</TEXT>
     </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZPPM_MESSAGES</ARBGB>
+     <MSGNR>010</MSGNR>
+     <TEXT>Only open tasks can be started.</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>
