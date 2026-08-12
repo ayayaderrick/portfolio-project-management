@@ -27,6 +27,7 @@ authorization master ( global )
   action ( features : instance ) startProject result [1] $self;
   action ( features : instance) putOnHold result [1] $self;
   action ( features : instance) resumeProject result [1] $self;
+  action ( features : instance) cancelProject result [1] $self;
 
   association _Milestone { create; with draft; }
 
@@ -115,7 +116,7 @@ define behavior for ZR_PPM_TASK alias Task
 persistent table zppm_task_a
 draft table zppm_task_d
 lock dependent by _Project
-authorization dependent by _Project
+authorization master ( global )
 {
   field ( readonly )
   TaskUuid, MilestoneUuid, ProjectUuid, TaskId,
@@ -134,6 +135,8 @@ authorization dependent by _Project
 
   validation validateTaskDueDate on save { create; update; }
   validation validateCompletedTask on save { create; update; }
+
+  action ( features : instance ) startTask result [1] $self;
 
   association _Milestone { with draft; }
   association _Project { with draft; }

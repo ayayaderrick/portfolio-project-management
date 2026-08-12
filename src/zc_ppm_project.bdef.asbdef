@@ -20,6 +20,7 @@ use etag
   use action startProject;
   use action putOnHold;
   use action resumeProject;
+  use action cancelProject;
 
   use association _Milestone {create; with draft;}
 
@@ -42,6 +43,8 @@ use etag
 {
   use update;
   use delete;
+
+  use action startTask;
 
   use association _Project { with draft;}
   use association _Milestone{ with draft;}
