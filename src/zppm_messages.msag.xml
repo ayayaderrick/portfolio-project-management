@@ -56,6 +56,12 @@
      <MSGNR>008</MSGNR>
      <TEXT>Only projects that are on hold can be resumed.</TEXT>
     </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZPPM_MESSAGES</ARBGB>
+     <MSGNR>009</MSGNR>
+     <TEXT>Only new, in-progress, or on-hold projects can be cancelled.</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>
