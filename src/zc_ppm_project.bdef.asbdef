@@ -44,6 +44,8 @@ use etag
   use update;
   use delete;
 
+  use action startTask;
+
   use association _Project { with draft;}
   use association _Milestone{ with draft;}
 
