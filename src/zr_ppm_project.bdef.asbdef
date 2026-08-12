@@ -117,7 +117,6 @@ persistent table zppm_task_a
 draft table zppm_task_d
 lock dependent by _Project
 authorization master ( global )
-//authorization dependent by _Project
 {
   field ( readonly )
   TaskUuid, MilestoneUuid, ProjectUuid, TaskId,
@@ -137,7 +136,7 @@ authorization master ( global )
   validation validateTaskDueDate on save { create; update; }
   validation validateCompletedTask on save { create; update; }
 
-  action startTask result [1] $self;
+  action ( features : instance ) startTask result [1] $self;
 
   association _Milestone { with draft; }
   association _Project { with draft; }
