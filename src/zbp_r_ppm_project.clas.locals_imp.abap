@@ -12,6 +12,8 @@ CLASS lhc_task DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR Task~calculateProjectCompletion.
     METHODS synchronizeMilestoneStatus FOR DETERMINE ON MODIFY
       IMPORTING keys FOR Task~synchronizeMilestoneStatus.
+    METHODS startTask FOR MODIFY
+      IMPORTING keys FOR ACTION Task~startTask RESULT result.
 
 
 ENDCLASS.
@@ -392,6 +394,80 @@ CLASS lhc_task IMPLEMENTATION.
 
       reported = CORRESPONDING #( DEEP lt_reported_modify ).
     ENDIF.
+
+  ENDMETHOD.
+
+
+
+  METHOD startTask.
+
+    "---------------------------------------------------------------------
+    " Read affected Tasks
+    "---------------------------------------------------------------------
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    FIELDS ( Status )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_tasks)
+    FAILED failed
+    REPORTED reported.
+
+    IF lt_tasks IS INITIAL. RETURN. ENDIF.
+
+    "---------------------------------------------------------------------
+    " Validate status transition
+    "
+    " OPEN -> IN_PROGRESS is the only valid transition.
+    "---------------------------------------------------------------------
+    LOOP AT lt_tasks ASSIGNING FIELD-SYMBOL(<fs_task>).
+      IF <fs_task>-Status <> zif_ppm_constants=>task_status-open.
+        APPEND VALUE #( %tky = <fs_task>-%tky ) TO failed-task.
+        APPEND VALUE #(
+           %tky = <fs_task>-%tky
+           %msg = new_message(
+                    id = 'ZPPM_MESSAGES'
+                    number = '010'
+                    severity = if_abap_behv_message=>severity-error )
+         ) TO reported-task.
+      ENDIF.
+    ENDLOOP.
+
+    "---------------------------------------------------------------------
+    " Remove tasks that failed validation
+    "---------------------------------------------------------------------
+    DELETE lt_tasks WHERE Status <> zif_ppm_constants=>task_status-open.
+    IF lt_tasks IS INITIAL. RETURN. ENDIF.
+
+    "---------------------------------------------------------------------
+    " Change Task status
+    "---------------------------------------------------------------------
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    UPDATE FIELDS ( Status )
+    WITH VALUE #( FOR task IN lt_tasks ( %tky = task-%tky
+                                         Status = zif_ppm_constants=>task_status-in_progress ) )
+    FAILED DATA(lt_failed_modify)
+    REPORTED DATA(lt_reported_modify).
+
+    "---------------------------------------------------------------------
+    " Propagate MODIFY failures/messages
+    "---------------------------------------------------------------------
+    failed = CORRESPONDING #( DEEP lt_failed_modify  ).
+    reported = CORRESPONDING #( DEEP lt_reported_modify ).
+
+    "---------------------------------------------------------------------
+    " Read changed Tasks for action result
+    "---------------------------------------------------------------------
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    ALL FIELDS WITH CORRESPONDING #( lt_tasks )
+    RESULT DATA(lt_updated_tasks).
+
+    "---------------------------------------------------------------------
+    " Return changed instances
+    "---------------------------------------------------------------------
+    result = VALUE #( FOR task IN lt_updated_tasks ( %tky = task-%tky
+                                                     %param = CORRESPONDING #( task ) ) ).
 
   ENDMETHOD.
 
