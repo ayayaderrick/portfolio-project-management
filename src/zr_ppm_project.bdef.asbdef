@@ -137,6 +137,7 @@ authorization master ( global )
   validation validateCompletedTask on save { create; update; }
 
   action ( features : instance ) startTask result [1] $self;
+  action ( features : instance) blockTask result [1] $self;
 
   association _Milestone { with draft; }
   association _Project { with draft; }
