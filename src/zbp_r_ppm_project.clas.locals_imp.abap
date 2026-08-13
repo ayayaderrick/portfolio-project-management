@@ -569,6 +569,10 @@ CLASS lhc_task IMPLEMENTATION.
         %action-startTask = COND #( WHEN task-Status = zif_ppm_constants=>task_status-open
                                     THEN if_abap_behv=>fc-o-enabled
                                     ELSE if_abap_behv=>fc-o-disabled )
+        %action-blockTask = COND #( WHEN task-Status = zif_ppm_constants=>task_status-open
+                                      OR task-Status = zif_ppm_constants=>task_status-in_progress
+                                    THEN if_abap_behv=>fc-o-enabled
+                                    ELSE if_abap_behv=>fc-o-disabled )
      ) ).
 
   ENDMETHOD.
