@@ -45,6 +45,7 @@ use etag
   use delete;
 
   use action startTask;
+  use action blockTask;
 
   use association _Project { with draft;}
   use association _Milestone{ with draft;}
