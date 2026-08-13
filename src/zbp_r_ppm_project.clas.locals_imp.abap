@@ -22,6 +22,8 @@ CLASS lhc_task DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR ACTION task~blocktask RESULT result.
     METHODS unblocktask FOR MODIFY
       IMPORTING keys FOR ACTION task~unblocktask RESULT result.
+    METHODS completetask FOR MODIFY
+      IMPORTING keys FOR ACTION task~completetask RESULT result.
 
 
 ENDCLASS.
@@ -628,6 +630,78 @@ CLASS lhc_task IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD completeTask.
+
+    "---------------------------------------------------------------------
+    " Read affected Tasks
+    "---------------------------------------------------------------------
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    FIELDS ( Status )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_tasks)
+    FAILED failed
+    REPORTED reported.
+
+    IF lt_tasks IS INITIAL. RETURN. ENDIF.
+
+    "---------------------------------------------------------------------
+    " Validate status transition
+    "
+    " IN_PROGRESS -> DONE is the only valid transition.
+    "---------------------------------------------------------------------
+    LOOP AT lt_tasks ASSIGNING FIELD-SYMBOL(<fs_task>).
+      IF <fs_task>-Status <> zif_ppm_constants=>task_status-in_progress.
+        APPEND VALUE #( %tky = <fs_task>-%tky ) TO failed-task.
+        APPEND VALUE #(
+           %tky = <fs_task>-%tky
+           %msg = new_message(
+                    id = 'ZPPM_MESSAGES'
+                    number = '013'
+                    severity = if_abap_behv_message=>severity-error )
+         ) TO reported-task.
+      ENDIF.
+    ENDLOOP.
+
+    "---------------------------------------------------------------------
+    " Remove tasks that failed validation
+    "---------------------------------------------------------------------
+    DELETE lt_tasks WHERE Status <> zif_ppm_constants=>task_status-in_progress.
+    IF lt_tasks IS INITIAL. RETURN. ENDIF.
+
+    "---------------------------------------------------------------------
+    " Set Task status to done
+    "---------------------------------------------------------------------
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    UPDATE FIELDS ( Status )
+    WITH VALUE #( FOR task IN lt_tasks ( %tky = task-%tky
+                                         Status = zif_ppm_constants=>task_status-done ) )
+    FAILED DATA(lt_failed_modify)
+    REPORTED DATA(lt_reported_modify).
+
+    "---------------------------------------------------------------------
+    " Propagate MODIFY failures/messages
+    "---------------------------------------------------------------------
+    failed = CORRESPONDING #( DEEP lt_failed_modify  ).
+    reported = CORRESPONDING #( DEEP lt_reported_modify ).
+
+    "---------------------------------------------------------------------
+    " Read changed Tasks for action result
+    "---------------------------------------------------------------------
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    ALL FIELDS WITH CORRESPONDING #( lt_tasks )
+    RESULT DATA(lt_updated_tasks).
+
+    "---------------------------------------------------------------------
+    " Return changed instances
+    "---------------------------------------------------------------------
+    result = VALUE #( FOR task IN lt_updated_tasks ( %tky = task-%tky
+                                                     %param = CORRESPONDING #( task ) ) ).
+
+  ENDMETHOD.
+
   METHOD get_instance_features.
 
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
@@ -650,15 +724,15 @@ CLASS lhc_task IMPLEMENTATION.
         %action-unblockTask = COND #( WHEN task-Status = zif_ppm_constants=>task_status-blocked
                                       THEN if_abap_behv=>fc-o-enabled
                                       ELSE if_abap_behv=>fc-o-disabled )
+        %action-completeTask = COND #( WHEN task-Status = zif_ppm_constants=>task_status-in_progress
+                                       THEN if_abap_behv=>fc-o-enabled
+                                       ELSE if_abap_behv=>fc-o-disabled )
      ) ).
 
   ENDMETHOD.
 
   METHOD get_global_authorizations.
   ENDMETHOD.
-
-
-
 
 
 ENDCLASS.
