@@ -51,11 +51,13 @@ annotate view ZC_PPM_TASK with
   { type: #FOR_ACTION, dataAction: 'startTask', label: 'Start Task' },
   { type: #FOR_ACTION, dataAction: 'blockTask', label: 'Block Task' },
   { type: #FOR_ACTION, dataAction: 'unblockTask', label: 'Unblock Task' },
+  { type: #FOR_ACTION, dataAction: 'completeTask', label: 'Complete Task' },
   { position: 10 }]
   @UI.identification: [
   { type: #FOR_ACTION, dataAction: 'startTask', label: 'Start Task' },
   { type: #FOR_ACTION, dataAction: 'blockTask', label: 'Block Task' },
   { type: #FOR_ACTION, dataAction: 'unblockTask', label: 'Unblock Task' },
+  { type: #FOR_ACTION, dataAction: 'completeTask', label: 'Complete Task' },
   { position: 10 }]
   @UI.selectionField: [{ position: 10 }]
   @UI.fieldGroup: [{ qualifier: 'General', position: 10 }]

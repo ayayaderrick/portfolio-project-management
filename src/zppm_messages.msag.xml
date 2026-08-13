@@ -80,6 +80,12 @@
      <MSGNR>012</MSGNR>
      <TEXT>Only blocked tasks can be unblocked.</TEXT>
     </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZPPM_MESSAGES</ARBGB>
+     <MSGNR>013</MSGNR>
+     <TEXT>Only in-progress tasks can be completed.</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>
