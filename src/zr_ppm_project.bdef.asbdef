@@ -12,7 +12,7 @@ total etag LastChangedAt
 authorization master ( global )
 {
   field ( readonly )
-  ProjectUUID, ProjectID, CompletionPercentage, CreatedBy,
+  ProjectUUID, ProjectID, CompletionPercentage, CreatedBy, Status,
   CreatedAt, LocalLastChangedBy, LocalLastChangedAt, LastChangedAt;
 
   field ( numbering : managed )
@@ -84,7 +84,7 @@ lock dependent by _Project
 authorization master ( global )
 {
   field ( readonly )
-  MilestoneUuid, ProjectUuid, MilestoneId, CreatedBy,
+  MilestoneUuid, ProjectUuid, MilestoneId, CreatedBy, Status,
   CreatedAt, LocalLastChangedBy, LocalLastChangedAt, LastChangedAt;
 
   field ( numbering : managed )
