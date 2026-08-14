@@ -18,20 +18,21 @@ authorization master ( global )
   field ( numbering : managed )
   ProjectUUID;
 
-  field ( mandatory)
+  field ( mandatory )
   ProjectName, Description, StartDate, EndDate;
 
   determination setProjectId on modify { create; }
   validation validateProjectDates on save { create; update; }
 
   action ( features : instance ) startProject result [1] $self;
-  action ( features : instance) putOnHold result [1] $self;
-  action ( features : instance) resumeProject result [1] $self;
-  action ( features : instance) cancelProject result [1] $self;
+  action ( features : instance ) putOnHold result [1] $self;
+  action ( features : instance ) resumeProject result [1] $self;
+  action ( features : instance ) cancelProject result [1] $self;
 
   determine action ( authorization : update ) validateDateRange { validation validateProjectDates; }
 
-  side effects {
+  side effects
+  {
     determine action validateDateRange executed on field StartDate, field EndDate affects messages;
   }
 
@@ -45,7 +46,8 @@ authorization master ( global )
   draft action Discard;
   draft action Edit;
   draft action Resume;
-  draft determine action Prepare{
+  draft determine action Prepare
+  {
     validation validateProjectDates;
     validation Milestone~validateMilestoneDueDate;
     validation Task~validateTaskDueDate;
@@ -84,7 +86,7 @@ authorization master ( global )
   field ( numbering : managed )
   MilestoneUuid;
 
-  field ( mandatory)
+  field ( mandatory )
   MilestoneName, Description, SequenceNo, DueDate;
 
   determination setMilestoneId on modify { create; }
@@ -95,7 +97,8 @@ authorization master ( global )
 
   determine action ( authorization : update ) validateDueDate { validation validateMilestoneDueDate; }
 
-  side effects {
+  side effects
+  {
     determine action validateDueDate executed on field DueDate affects messages;
   }
 
@@ -149,15 +152,22 @@ authorization master ( global )
   validation validateCompletedTask on save { create; update; }
 
   action ( features : instance ) startTask result [1] $self;
-  action ( features : instance) blockTask result [1] $self;
-  action ( features : instance) unblockTask result [1] $self;
-  action ( features : instance) completeTask result [1] $self;
-  action ( features : instance) reopenTask result [1] $self;
+  action ( features : instance ) blockTask result [1] $self;
+  action ( features : instance ) unblockTask result [1] $self;
+  action ( features : instance ) completeTask result [1] $self;
+  action ( features : instance ) reopenTask result [1] $self;
 
   determine action ( authorization : update ) validateDueDate { validation validateTaskDueDate; }
 
-  side effects {
+  side effects
+  {
     determine action validateDueDate executed on field DueDate affects messages;
+    field Status affects field _Milestone.Status, field _Project.Status, field _Project.CompletionPercentage;
+    action startTask affects field Status, field _Milestone.Status, field _Project.Status, field _Project.CompletionPercentage;
+    action blockTask affects field Status, field _Milestone.Status, field _Project.Status, field _Project.CompletionPercentage;
+    action unblockTask affects field Status, field _Milestone.Status, field _Project.Status, field _Project.CompletionPercentage;
+    action completeTask affects field Status, field _Milestone.Status, field _Project.Status, field _Project.CompletionPercentage;
+    action reopenTask affects field Status, field _Milestone.Status, field _Project.Status, field _Project.CompletionPercentage;
   }
 
   association _Milestone { with draft; }
