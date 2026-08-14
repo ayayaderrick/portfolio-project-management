@@ -48,6 +48,7 @@ use etag
   use action blockTask;
   use action unblockTask;
   use action completeTask;
+  use action reopenTask;
 
   use association _Project { with draft;}
   use association _Milestone{ with draft;}
