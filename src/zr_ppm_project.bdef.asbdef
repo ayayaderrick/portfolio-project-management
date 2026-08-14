@@ -29,6 +29,12 @@ authorization master ( global )
   action ( features : instance) resumeProject result [1] $self;
   action ( features : instance) cancelProject result [1] $self;
 
+  determine action ( authorization : update ) validateDateRange { validation validateProjectDates; }
+
+  side effects {
+    determine action validateDateRange executed on field StartDate, field EndDate affects messages;
+  }
+
   association _Milestone { create; with draft; }
 
   create;
@@ -87,6 +93,12 @@ authorization master ( global )
   validation validateMilestoneDueDate on save { create; update; }
   validation validateSequenceNumber on save { create; update; }
 
+  determine action ( authorization : update ) validateDueDate { validation validateMilestoneDueDate; }
+
+  side effects {
+    determine action validateDueDate executed on field DueDate affects messages;
+  }
+
   association _Project { with draft; }
   association _Task { create; with draft; }
 
@@ -141,6 +153,12 @@ authorization master ( global )
   action ( features : instance) unblockTask result [1] $self;
   action ( features : instance) completeTask result [1] $self;
   action ( features : instance) reopenTask result [1] $self;
+
+  determine action ( authorization : update ) validateDueDate { validation validateTaskDueDate; }
+
+  side effects {
+    determine action validateDueDate executed on field DueDate affects messages;
+  }
 
   association _Milestone { with draft; }
   association _Project { with draft; }
