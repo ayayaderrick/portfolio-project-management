@@ -34,6 +34,10 @@ authorization master ( global )
   side effects
   {
     determine action validateDateRange executed on field StartDate, field EndDate affects messages;
+    action startProject affects field Status;
+    action putOnHold affects field Status;
+    action resumeProject affects field Status;
+    action cancelProject affects field Status;
   }
 
   association _Milestone { create; with draft; }
