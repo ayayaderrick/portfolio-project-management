@@ -140,6 +140,7 @@ authorization master ( global )
   action ( features : instance) blockTask result [1] $self;
   action ( features : instance) unblockTask result [1] $self;
   action ( features : instance) completeTask result [1] $self;
+  action ( features : instance) reopenTask result [1] $self;
 
   association _Milestone { with draft; }
   association _Project { with draft; }
