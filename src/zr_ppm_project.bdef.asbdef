@@ -100,6 +100,7 @@ authorization master ( global )
   side effects
   {
     determine action validateDueDate executed on field DueDate affects messages;
+    field Status affects field _Project.Status;
   }
 
   association _Project { with draft; }
