@@ -825,6 +825,8 @@ CLASS lhc_milestone DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR Milestone~validateSequenceNumber.
     METHODS synchronizeProjectStatus FOR DETERMINE ON MODIFY
       IMPORTING keys FOR Milestone~synchronizeProjectStatus.
+    METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
+      IMPORTING REQUEST requested_authorizations FOR Milestone RESULT result.
 
 
 ENDCLASS.
@@ -1115,6 +1117,9 @@ CLASS lhc_milestone IMPLEMENTATION.
 
     ENDIF.
 
+  ENDMETHOD.
+
+  METHOD get_global_authorizations.
   ENDMETHOD.
 
 ENDCLASS.

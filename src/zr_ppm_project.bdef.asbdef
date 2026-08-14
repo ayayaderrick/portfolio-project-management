@@ -69,7 +69,7 @@ define behavior for ZR_PPM_MILESTONE alias Milestone
 persistent table zppm_milestone_a
 draft table zppm_milestome_d
 lock dependent by _Project
-authorization dependent by _Project
+authorization master ( global )
 {
   field ( readonly )
   MilestoneUuid, ProjectUuid, MilestoneId, CreatedBy,
