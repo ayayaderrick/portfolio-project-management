@@ -744,7 +744,7 @@ CLASS lhc_task IMPLEMENTATION.
     IF lt_tasks IS INITIAL. RETURN. ENDIF.
 
     "---------------------------------------------------------------------
-    " Set Task status to done
+    " Set Task status to in_progress
     "---------------------------------------------------------------------
     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Task
@@ -801,6 +801,9 @@ CLASS lhc_task IMPLEMENTATION.
         %action-completeTask = COND #( WHEN task-Status = zif_ppm_constants=>task_status-in_progress
                                        THEN if_abap_behv=>fc-o-enabled
                                        ELSE if_abap_behv=>fc-o-disabled )
+        %action-reopenTask = COND #( WHEN task-Status = zif_ppm_constants=>task_status-done
+                                     THEN if_abap_behv=>fc-o-enabled
+                                     ELSE if_abap_behv=>fc-o-disabled )
      ) ).
 
   ENDMETHOD.
