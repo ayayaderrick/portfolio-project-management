@@ -12,22 +12,33 @@ total etag LastChangedAt
 authorization master ( global )
 {
   field ( readonly )
-  ProjectUUID, ProjectID, CompletionPercentage, CreatedBy,
+  ProjectUUID, ProjectID, CompletionPercentage, CreatedBy, Status,
   CreatedAt, LocalLastChangedBy, LocalLastChangedAt, LastChangedAt;
 
   field ( numbering : managed )
   ProjectUUID;
 
-  field ( mandatory)
+  field ( mandatory )
   ProjectName, Description, StartDate, EndDate;
 
   determination setProjectId on modify { create; }
   validation validateProjectDates on save { create; update; }
 
   action ( features : instance ) startProject result [1] $self;
-  action ( features : instance) putOnHold result [1] $self;
-  action ( features : instance) resumeProject result [1] $self;
-  action ( features : instance) cancelProject result [1] $self;
+  action ( features : instance ) putOnHold result [1] $self;
+  action ( features : instance ) resumeProject result [1] $self;
+  action ( features : instance ) cancelProject result [1] $self;
+
+  determine action ( authorization : update ) validateDateRange { validation validateProjectDates; }
+
+  side effects
+  {
+    determine action validateDateRange executed on field StartDate, field EndDate affects messages;
+    action startProject affects field Status;
+    action putOnHold affects field Status;
+    action resumeProject affects field Status;
+    action cancelProject affects field Status;
+  }
 
   association _Milestone { create; with draft; }
 
@@ -39,7 +50,8 @@ authorization master ( global )
   draft action Discard;
   draft action Edit;
   draft action Resume;
-  draft determine action Prepare{
+  draft determine action Prepare
+  {
     validation validateProjectDates;
     validation Milestone~validateMilestoneDueDate;
     validation Task~validateTaskDueDate;
@@ -69,16 +81,16 @@ define behavior for ZR_PPM_MILESTONE alias Milestone
 persistent table zppm_milestone_a
 draft table zppm_milestome_d
 lock dependent by _Project
-authorization dependent by _Project
+authorization master ( global )
 {
   field ( readonly )
-  MilestoneUuid, ProjectUuid, MilestoneId, CreatedBy,
+  MilestoneUuid, ProjectUuid, MilestoneId, CreatedBy, Status,
   CreatedAt, LocalLastChangedBy, LocalLastChangedAt, LastChangedAt;
 
   field ( numbering : managed )
   MilestoneUuid;
 
-  field ( mandatory)
+  field ( mandatory )
   MilestoneName, Description, SequenceNo, DueDate;
 
   determination setMilestoneId on modify { create; }
@@ -86,6 +98,14 @@ authorization dependent by _Project
 
   validation validateMilestoneDueDate on save { create; update; }
   validation validateSequenceNumber on save { create; update; }
+
+  determine action ( authorization : update ) validateDueDate { validation validateMilestoneDueDate; }
+
+  side effects
+  {
+    determine action validateDueDate executed on field DueDate affects messages;
+    field Status affects field _Project.Status;
+  }
 
   association _Project { with draft; }
   association _Task { create; with draft; }
@@ -137,6 +157,23 @@ authorization master ( global )
   validation validateCompletedTask on save { create; update; }
 
   action ( features : instance ) startTask result [1] $self;
+  action ( features : instance ) blockTask result [1] $self;
+  action ( features : instance ) unblockTask result [1] $self;
+  action ( features : instance ) completeTask result [1] $self;
+  action ( features : instance ) reopenTask result [1] $self;
+
+  determine action ( authorization : update ) validateDueDate { validation validateTaskDueDate; }
+
+  side effects
+  {
+    determine action validateDueDate executed on field DueDate affects messages;
+    field Status affects field _Milestone.Status, field _Project.Status, field _Project.CompletionPercentage;
+    action startTask affects field Status, field _Milestone.Status, field _Project.Status, field _Project.CompletionPercentage;
+    action blockTask affects field Status, field _Milestone.Status, field _Project.Status, field _Project.CompletionPercentage;
+    action unblockTask affects field Status, field _Milestone.Status, field _Project.Status, field _Project.CompletionPercentage;
+    action completeTask affects field Status, field _Milestone.Status, field _Project.Status, field _Project.CompletionPercentage;
+    action reopenTask affects field Status, field _Milestone.Status, field _Project.Status, field _Project.CompletionPercentage;
+  }
 
   association _Milestone { with draft; }
   association _Project { with draft; }

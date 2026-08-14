@@ -68,6 +68,30 @@
      <MSGNR>010</MSGNR>
      <TEXT>Only open tasks can be started.</TEXT>
     </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZPPM_MESSAGES</ARBGB>
+     <MSGNR>011</MSGNR>
+     <TEXT>Only open or in-progress tasks can be blocked.</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZPPM_MESSAGES</ARBGB>
+     <MSGNR>012</MSGNR>
+     <TEXT>Only blocked tasks can be unblocked.</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZPPM_MESSAGES</ARBGB>
+     <MSGNR>013</MSGNR>
+     <TEXT>Only in-progress tasks can be completed.</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZPPM_MESSAGES</ARBGB>
+     <MSGNR>014</MSGNR>
+     <TEXT>Only completed tasks can be reopened.</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>
