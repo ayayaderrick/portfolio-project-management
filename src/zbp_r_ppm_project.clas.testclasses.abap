@@ -34,7 +34,7 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD setup.
-
+    environment->clear_doubles(  ).
   ENDMETHOD.
 
 ENDCLASS.
