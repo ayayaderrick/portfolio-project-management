@@ -7,6 +7,7 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
     CLASS-DATA: environment TYPE REF TO if_osql_test_environment.
 
     CLASS-METHODS: class_setup.
+    CLASS-METHODS: class_teardown.
 
 ENDCLASS.
 
@@ -24,6 +25,10 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
             ( 'ZPPM_TASK_D' )
          )
      ).
+  ENDMETHOD.
+
+  METHOD class_teardown.
+    environment->destroy(  ).
   ENDMETHOD.
 
 ENDCLASS.
