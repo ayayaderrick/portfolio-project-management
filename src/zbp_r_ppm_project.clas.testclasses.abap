@@ -84,7 +84,34 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD create_project_with_milestone.
+     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project
+        CREATE FIELDS ( ProjectName Description StartDate EndDate )
+        WITH VALUE #( ( %cid = 'PROJ1'
+                         ProjectName = 'Test Project'
+                         Description = 'Created by ABAP Unit'
+                         StartDate   = iv_project_start
+                         EndDate     = iv_project_end ) )
+      ENTITY Project
+        CREATE BY \_Milestone
+        FIELDS ( MilestoneName Description SequenceNo DueDate )
+        WITH VALUE #( ( %cid_ref = 'PROJ1'
+                         %target  = VALUE #(
+                            ( %cid          = 'MS1'
+                              MilestoneName = 'Milestone 1'
+                              Description   = 'Created by ABAP Unit'
+                              SequenceNo    = iv_ms_sequence_no
+                              DueDate       = iv_ms_due_date ) ) ) )
+      MAPPED   DATA(ls_mapped)
+      FAILED DATA(failed)
+      REPORTED DATA(reported).
 
+    IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
+      ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
+    ENDIF.
+    IF line_exists( ls_mapped-milestone[ %cid = 'MS1' ] ).
+      ev_milestone_uuid = ls_mapped-milestone[ %cid = 'MS1' ]-MilestoneUuid.
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.
