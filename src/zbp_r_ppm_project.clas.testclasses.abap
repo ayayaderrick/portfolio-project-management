@@ -22,6 +22,16 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
       EXPORTING
         ev_project_uuid TYPE sysuuid_x16.
 
+    METHODS create_project_with_milestone
+      IMPORTING
+        iv_project_start     TYPE zppm_start_date DEFAULT '20260101'
+        iv_project_end       TYPE zppm_end_date DEFAULT '20261231'
+        iv_ms_sequence_no    TYPE zppm_sequence_no DEFAULT 1
+        iv_ms_due_date       TYPE zppm_due_date DEFAULT '20260615'
+      EXPORTING
+        ev_project_uuid      TYPE sysuuid_x16
+        ev_milestone_uuid    TYPE sysuuid_x16.
+
 ENDCLASS.
 
 
@@ -71,6 +81,10 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
     IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
       ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD create_project_with_milestone.
+
   ENDMETHOD.
 
 ENDCLASS.
