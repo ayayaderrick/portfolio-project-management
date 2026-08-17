@@ -17,10 +17,10 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
     "---------------------------------------------------------------
     METHODS create_project
       IMPORTING
-        iv_start_date        TYPE zppm_start_date DEFAULT '20260101'
-        iv_end_date          TYPE zppm_end_date DEFAULT '20261231'
+        iv_start_date   TYPE zppm_start_date DEFAULT '20260101'
+        iv_end_date     TYPE zppm_end_date DEFAULT '20261231'
       EXPORTING
-        ev_project_uuid      TYPE sysuuid_x16.
+        ev_project_uuid TYPE sysuuid_x16.
 
 ENDCLASS.
 
@@ -52,8 +52,25 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
     ROLLBACK ENTITIES.
   ENDMETHOD.
 
+  "=====================================================================
+  " Helpers
+  "=====================================================================
   METHOD create_project.
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ1'
+                    ProjectName = 'Test Project'
+                    Description = 'Created by ABAP Unit'
+                    StartDate   = iv_start_date
+                    EndDate     = iv_end_date ) )
+    MAPPED   DATA(ls_mapped)
+    FAILED DATA(failed)
+    REPORTED DATA(reported).
 
+    IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
+      ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.
