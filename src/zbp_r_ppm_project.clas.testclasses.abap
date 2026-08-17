@@ -32,6 +32,19 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
         ev_project_uuid      TYPE sysuuid_x16
         ev_milestone_uuid    TYPE sysuuid_x16.
 
+    METHODS create_full_hierarchy
+      IMPORTING
+        iv_project_start     TYPE zppm_start_date DEFAULT '20260101'
+        iv_project_end       TYPE zppm_end_date DEFAULT '20261231'
+        iv_ms_due_date       TYPE zppm_due_date DEFAULT '20260615'
+        iv_task_due_date     TYPE zppm_due_date DEFAULT '20260601'
+        iv_task_status       TYPE zppm_task_status DEFAULT zif_ppm_constants=>task_status-open
+        iv_task_assigned_to  TYPE zppm_assigned_to OPTIONAL
+      EXPORTING
+        ev_project_uuid      TYPE sysuuid_x16
+        ev_milestone_uuid    TYPE sysuuid_x16
+        ev_task_uuid         TYPE sysuuid_x16.
+
 ENDCLASS.
 
 
@@ -112,6 +125,10 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
     IF line_exists( ls_mapped-milestone[ %cid = 'MS1' ] ).
       ev_milestone_uuid = ls_mapped-milestone[ %cid = 'MS1' ]-MilestoneUuid.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD create_full_hierarchy.
+
   ENDMETHOD.
 
 ENDCLASS.
