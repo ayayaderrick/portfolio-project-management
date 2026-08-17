@@ -24,26 +24,26 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
 
     METHODS create_project_with_milestone
       IMPORTING
-        iv_project_start     TYPE zppm_start_date DEFAULT '20260101'
-        iv_project_end       TYPE zppm_end_date DEFAULT '20261231'
-        iv_ms_sequence_no    TYPE zppm_sequence_no DEFAULT 1
-        iv_ms_due_date       TYPE zppm_due_date DEFAULT '20260615'
+        iv_project_start  TYPE zppm_start_date DEFAULT '20260101'
+        iv_project_end    TYPE zppm_end_date DEFAULT '20261231'
+        iv_ms_sequence_no TYPE zppm_sequence_no DEFAULT 1
+        iv_ms_due_date    TYPE zppm_due_date DEFAULT '20260615'
       EXPORTING
-        ev_project_uuid      TYPE sysuuid_x16
-        ev_milestone_uuid    TYPE sysuuid_x16.
+        ev_project_uuid   TYPE sysuuid_x16
+        ev_milestone_uuid TYPE sysuuid_x16.
 
     METHODS create_full_hierarchy
       IMPORTING
-        iv_project_start     TYPE zppm_start_date DEFAULT '20260101'
-        iv_project_end       TYPE zppm_end_date DEFAULT '20261231'
-        iv_ms_due_date       TYPE zppm_due_date DEFAULT '20260615'
-        iv_task_due_date     TYPE zppm_due_date DEFAULT '20260601'
-        iv_task_status       TYPE zppm_task_status DEFAULT zif_ppm_constants=>task_status-open
-        iv_task_assigned_to  TYPE zppm_assigned_to OPTIONAL
+        iv_project_start    TYPE zppm_start_date DEFAULT '20260101'
+        iv_project_end      TYPE zppm_end_date DEFAULT '20261231'
+        iv_ms_due_date      TYPE zppm_due_date DEFAULT '20260615'
+        iv_task_due_date    TYPE zppm_due_date DEFAULT '20260601'
+        iv_task_status      TYPE zppm_task_status DEFAULT zif_ppm_constants=>task_status-open
+        iv_task_assigned_to TYPE zppm_assigned_to OPTIONAL
       EXPORTING
-        ev_project_uuid      TYPE sysuuid_x16
-        ev_milestone_uuid    TYPE sysuuid_x16
-        ev_task_uuid         TYPE sysuuid_x16.
+        ev_project_uuid     TYPE sysuuid_x16
+        ev_milestone_uuid   TYPE sysuuid_x16
+        ev_task_uuid        TYPE sysuuid_x16.
 
 ENDCLASS.
 
@@ -97,7 +97,38 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD create_project_with_milestone.
-     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+     ENTITY Project
+       CREATE FIELDS ( ProjectName Description StartDate EndDate )
+       WITH VALUE #( ( %cid = 'PROJ1'
+                        ProjectName = 'Test Project'
+                        Description = 'Created by ABAP Unit'
+                        StartDate   = iv_project_start
+                        EndDate     = iv_project_end ) )
+     ENTITY Project
+       CREATE BY \_Milestone
+       FIELDS ( MilestoneName Description SequenceNo DueDate )
+       WITH VALUE #( ( %cid_ref = 'PROJ1'
+                        %target  = VALUE #(
+                           ( %cid          = 'MS1'
+                             MilestoneName = 'Milestone 1'
+                             Description   = 'Created by ABAP Unit'
+                             SequenceNo    = iv_ms_sequence_no
+                             DueDate       = iv_ms_due_date ) ) ) )
+     MAPPED   DATA(ls_mapped)
+     FAILED DATA(failed)
+     REPORTED DATA(reported).
+
+    IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
+      ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
+    ENDIF.
+    IF line_exists( ls_mapped-milestone[ %cid = 'MS1' ] ).
+      ev_milestone_uuid = ls_mapped-milestone[ %cid = 'MS1' ]-MilestoneUuid.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD create_full_hierarchy.
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
       ENTITY Project
         CREATE FIELDS ( ProjectName Description StartDate EndDate )
         WITH VALUE #( ( %cid = 'PROJ1'
@@ -113,8 +144,20 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
                             ( %cid          = 'MS1'
                               MilestoneName = 'Milestone 1'
                               Description   = 'Created by ABAP Unit'
-                              SequenceNo    = iv_ms_sequence_no
+                              SequenceNo    = 1
                               DueDate       = iv_ms_due_date ) ) ) )
+      ENTITY Milestone
+        CREATE BY \_Task
+        FIELDS ( TaskName Description Priority DueDate Status AssignedTo )
+        WITH VALUE #( ( %cid_ref = 'MS1'
+                         %target  = VALUE #(
+                            ( %cid        = 'TASK1'
+                              TaskName    = 'Task 1'
+                              Description = 'Created by ABAP Unit'
+                              Priority    = zif_ppm_constants=>priority-medium
+                              DueDate     = iv_task_due_date
+                              Status      = iv_task_status
+                              AssignedTo  = iv_task_assigned_to ) ) ) )
       MAPPED   DATA(ls_mapped)
       FAILED DATA(failed)
       REPORTED DATA(reported).
@@ -125,10 +168,9 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
     IF line_exists( ls_mapped-milestone[ %cid = 'MS1' ] ).
       ev_milestone_uuid = ls_mapped-milestone[ %cid = 'MS1' ]-MilestoneUuid.
     ENDIF.
-  ENDMETHOD.
-
-  METHOD create_full_hierarchy.
-
+    IF line_exists( ls_mapped-task[ %cid = 'TASK1' ] ).
+      ev_task_uuid = ls_mapped-task[ %cid = 'TASK1' ]-TaskUuid.
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.
