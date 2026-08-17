@@ -10,6 +10,7 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
     CLASS-METHODS: class_teardown.
 
     METHODS setup.
+    METHODS terdown.
 
 ENDCLASS.
 
@@ -35,6 +36,10 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD setup.
     environment->clear_doubles(  ).
+  ENDMETHOD.
+
+  METHOD terdown.
+
   ENDMETHOD.
 
 ENDCLASS.
