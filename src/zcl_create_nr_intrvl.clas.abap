@@ -12,7 +12,7 @@ ENDCLASS.
 
 
 
-CLASS zcl_create_nr_intrvl IMPLEMENTATION.
+CLASS ZCL_CREATE_NR_INTRVL IMPLEMENTATION.
 
 
   METHOD if_oo_adt_classrun~main.

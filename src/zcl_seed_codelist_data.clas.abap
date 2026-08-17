@@ -13,7 +13,7 @@ ENDCLASS.
 
 
 
-CLASS zcl_seed_codelist_data IMPLEMENTATION.
+CLASS ZCL_SEED_CODELIST_DATA IMPLEMENTATION.
 
 
   METHOD if_oo_adt_classrun~main.
