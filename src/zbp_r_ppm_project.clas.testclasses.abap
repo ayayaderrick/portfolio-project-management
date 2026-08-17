@@ -9,6 +9,8 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
     CLASS-METHODS: class_setup.
     CLASS-METHODS: class_teardown.
 
+    METHODS setup.
+
 ENDCLASS.
 
 
@@ -29,6 +31,10 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD class_teardown.
     environment->destroy(  ).
+  ENDMETHOD.
+
+  METHOD setup.
+
   ENDMETHOD.
 
 ENDCLASS.
