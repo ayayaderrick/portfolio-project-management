@@ -12,6 +12,16 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
     METHODS setup.
     METHODS terdown.
 
+    "---------------------------------------------------------------
+    " Test data helpers
+    "---------------------------------------------------------------
+    METHODS create_project
+      IMPORTING
+        iv_start_date        TYPE zppm_start_date DEFAULT '20260101'
+        iv_end_date          TYPE zppm_end_date DEFAULT '20261231'
+      EXPORTING
+        ev_project_uuid      TYPE sysuuid_x16.
+
 ENDCLASS.
 
 
@@ -40,6 +50,10 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD terdown.
     ROLLBACK ENTITIES.
+  ENDMETHOD.
+
+  METHOD create_project.
+
   ENDMETHOD.
 
 ENDCLASS.
