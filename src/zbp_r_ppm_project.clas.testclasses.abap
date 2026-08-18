@@ -3,6 +3,9 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
   RISK LEVEL HARMLESS.
 
   PRIVATE SECTION.
+    TYPES:
+      ty_failed_early   TYPE RESPONSE FOR FAILED EARLY zr_ppm_project,
+      ty_reported_early TYPE RESPONSE FOR REPORTED EARLY zr_ppm_project.
 
     CLASS-DATA: environment TYPE REF TO if_osql_test_environment.
 
@@ -20,7 +23,9 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
         iv_start_date   TYPE zppm_start_date DEFAULT '20260101'
         iv_end_date     TYPE zppm_end_date DEFAULT '20261231'
       EXPORTING
-        ev_project_uuid TYPE sysuuid_x16.
+        ev_project_uuid TYPE sysuuid_x16
+        et_failed            TYPE ty_failed_early
+        et_reported          TYPE ty_reported_early.
 
     METHODS create_project_with_milestone
       IMPORTING
@@ -30,7 +35,9 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
         iv_ms_due_date    TYPE zppm_due_date DEFAULT '20260615'
       EXPORTING
         ev_project_uuid   TYPE sysuuid_x16
-        ev_milestone_uuid TYPE sysuuid_x16.
+        ev_milestone_uuid TYPE sysuuid_x16
+        et_failed            TYPE ty_failed_early
+        et_reported          TYPE ty_reported_early.
 
     METHODS create_full_hierarchy
       IMPORTING
@@ -43,7 +50,9 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
       EXPORTING
         ev_project_uuid     TYPE sysuuid_x16
         ev_milestone_uuid   TYPE sysuuid_x16
-        ev_task_uuid        TYPE sysuuid_x16.
+        ev_task_uuid        TYPE sysuuid_x16
+        et_failed            TYPE ty_failed_early
+        et_reported          TYPE ty_reported_early.
 
     "---------------------------------------------------------------
     " Project level
@@ -102,17 +111,18 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   " Helpers
   "=====================================================================
   METHOD create_project.
-    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
-    ENTITY Project
-    CREATE FIELDS ( ProjectName Description StartDate EndDate )
-    WITH VALUE #( ( %cid = 'PROJ1'
-                    ProjectName = 'Test Project'
-                    Description = 'Created by ABAP Unit'
-                    StartDate   = iv_start_date
-                    EndDate     = iv_end_date ) )
-    MAPPED   DATA(ls_mapped)
-    FAILED DATA(failed)
-    REPORTED DATA(reported).
+
+     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project
+        CREATE FIELDS ( ProjectName Description StartDate EndDate )
+        WITH VALUE #( ( %cid = 'PROJ1'
+                         ProjectName = 'Test Project'
+                         Description = 'Created by ABAP Unit'
+                         StartDate   = iv_start_date
+                         EndDate     = iv_end_date ) )
+      MAPPED   DATA(ls_mapped)
+      FAILED   et_failed
+      REPORTED et_reported.
 
     IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
       ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
@@ -120,27 +130,27 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD create_project_with_milestone.
-    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
-     ENTITY Project
-       CREATE FIELDS ( ProjectName Description StartDate EndDate )
-       WITH VALUE #( ( %cid = 'PROJ1'
-                        ProjectName = 'Test Project'
-                        Description = 'Created by ABAP Unit'
-                        StartDate   = iv_project_start
-                        EndDate     = iv_project_end ) )
-     ENTITY Project
-       CREATE BY \_Milestone
-       FIELDS ( MilestoneName Description SequenceNo DueDate )
-       WITH VALUE #( ( %cid_ref = 'PROJ1'
-                        %target  = VALUE #(
-                           ( %cid          = 'MS1'
-                             MilestoneName = 'Milestone 1'
-                             Description   = 'Created by ABAP Unit'
-                             SequenceNo    = iv_ms_sequence_no
-                             DueDate       = iv_ms_due_date ) ) ) )
-     MAPPED   DATA(ls_mapped)
-     FAILED DATA(failed)
-     REPORTED DATA(reported).
+     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project
+        CREATE FIELDS ( ProjectName Description StartDate EndDate )
+        WITH VALUE #( ( %cid = 'PROJ1'
+                         ProjectName = 'Test Project'
+                         Description = 'Created by ABAP Unit'
+                         StartDate   = iv_project_start
+                         EndDate     = iv_project_end ) )
+      ENTITY Project
+        CREATE BY \_Milestone
+        FIELDS ( MilestoneName Description SequenceNo DueDate )
+        WITH VALUE #( ( %cid_ref = 'PROJ1'
+                         %target  = VALUE #(
+                            ( %cid          = 'MS1'
+                              MilestoneName = 'Milestone 1'
+                              Description   = 'Created by ABAP Unit'
+                              SequenceNo    = iv_ms_sequence_no
+                              DueDate       = iv_ms_due_date ) ) ) )
+      MAPPED   DATA(ls_mapped)
+      FAILED   et_failed
+      REPORTED et_reported.
 
     IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
       ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
@@ -151,7 +161,7 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD create_full_hierarchy.
-    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
       ENTITY Project
         CREATE FIELDS ( ProjectName Description StartDate EndDate )
         WITH VALUE #( ( %cid = 'PROJ1'
@@ -182,8 +192,8 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
                               Status      = iv_task_status
                               AssignedTo  = iv_task_assigned_to ) ) ) )
       MAPPED   DATA(ls_mapped)
-      FAILED DATA(failed)
-      REPORTED DATA(reported).
+      FAILED   et_failed
+      REPORTED et_reported.
 
     IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
       ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
@@ -201,9 +211,14 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   " Project: numbering (setProjectId)
   "=====================================================================
   METHOD project_id_is_assigned.
+
     create_project(
       IMPORTING
-        ev_project_uuid = DATA(lv_project_uuid) ).
+        ev_project_uuid = DATA(lv_project_uuid)
+        et_failed       = DATA(lt_failed)
+        et_reported     = DATA(lt_reported) ).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-project ).
 
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
       ENTITY Project
@@ -214,39 +229,45 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
     cl_abap_unit_assert=>assert_not_initial(
         act = lt_projects[ 1 ]-ProjectID
         msg = |ProjectID should be assigned by the number range on create| ).
+
   ENDMETHOD.
 
   METHOD project_ids_are_unique.
-     create_project( IMPORTING ev_project_uuid = DATA(lv_uuid_1) ).
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid_1) ).
 
     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
-      ENTITY Project
-        CREATE FIELDS ( ProjectName Description StartDate EndDate )
-        WITH VALUE #( ( %cid = 'PROJ2'
-                         ProjectName = 'Second Project'
-                         Description = 'Created by ABAP Unit'
-                         StartDate   = '20260101'
-                         EndDate     = '20261231' ) )
-      MAPPED DATA(ls_mapped)
-      FAILED DATA(lt_failed).
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ2'
+                    ProjectName = 'Second Project'
+                    Description = 'Created by ABAP Unit'
+                    StartDate   = '20260101'
+                    EndDate     = '20261231' ) )
+    MAPPED DATA(ls_mapped)
+    FAILED DATA(lt_failed).
 
     cl_abap_unit_assert=>assert_initial( lt_failed-project ).
 
     DATA(lv_uuid_2) = ls_mapped-project[ %cid = 'PROJ2' ]-ProjectUUID.
 
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
-      ENTITY Project
-        FIELDS ( ProjectID )
-        WITH VALUE #( ( ProjectUUID = lv_uuid_1 )
-                       ( ProjectUUID = lv_uuid_2 ) )
-      RESULT DATA(lt_projects).
+    ENTITY Project
+    FIELDS ( ProjectID )
+    WITH VALUE #( ( ProjectUUID = lv_uuid_1 )
+                  ( ProjectUUID = lv_uuid_2 ) )
+    RESULT DATA(lt_projects).
 
     cl_abap_unit_assert=>assert_equals( act = lines( lt_projects ) exp = 2 ).
     cl_abap_unit_assert=>assert_differs(
         act = lt_projects[ ProjectUUID = lv_uuid_1 ]-ProjectID
         exp = lt_projects[ ProjectUUID = lv_uuid_2 ]-ProjectID ).
+
   ENDMETHOD.
 
+  "=====================================================================
+  " Project: validateProjectDates
+  "=====================================================================
   METHOD dates_end_before_start_fails.
 
   ENDMETHOD.
