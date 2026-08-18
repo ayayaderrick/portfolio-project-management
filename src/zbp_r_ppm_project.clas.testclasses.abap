@@ -270,6 +270,19 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   "=====================================================================
   METHOD dates_end_before_start_fails.
 
+    create_project(
+      EXPORTING
+        iv_start_date   = '20260601'
+        iv_end_date     = '20260101'
+      IMPORTING
+        et_failed       = DATA(lt_failed)
+        et_reported     = DATA(lt_reported) ).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-project
+        msg = |End date before start date must be rejected| ).
+    cl_abap_unit_assert=>assert_not_initial( lt_reported-project ).
+
   ENDMETHOD.
 
   METHOD dates_valid_range_succeeds.
