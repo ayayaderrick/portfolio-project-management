@@ -45,6 +45,29 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
         ev_milestone_uuid   TYPE sysuuid_x16
         ev_task_uuid        TYPE sysuuid_x16.
 
+    "---------------------------------------------------------------
+    " Project level
+    "---------------------------------------------------------------
+    METHODS project_id_is_assigned FOR TESTING.
+    METHODS project_ids_are_unique FOR TESTING.
+
+    METHODS dates_end_before_start_fails FOR TESTING.
+    METHODS dates_valid_range_succeeds FOR TESTING.
+
+    METHODS start_project_from_new_ok FOR TESTING.
+    METHODS start_project_twice_fails FOR TESTING.
+
+    METHODS put_on_hold_from_new_ok FOR TESTING.
+    METHODS put_on_hold_after_cancel_fails FOR TESTING.
+
+    METHODS resume_from_on_hold_ok FOR TESTING.
+    METHODS resume_from_new_fails FOR TESTING.
+
+    METHODS cancel_from_new_ok FOR TESTING.
+    METHODS cancel_twice_fails FOR TESTING.
+
+    METHODS project_features_new_status FOR TESTING.
+
 ENDCLASS.
 
 
@@ -171,6 +194,58 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
     IF line_exists( ls_mapped-task[ %cid = 'TASK1' ] ).
       ev_task_uuid = ls_mapped-task[ %cid = 'TASK1' ]-TaskUuid.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD cancel_from_new_ok.
+
+  ENDMETHOD.
+
+  METHOD cancel_twice_fails.
+
+  ENDMETHOD.
+
+  METHOD dates_end_before_start_fails.
+
+  ENDMETHOD.
+
+  METHOD dates_valid_range_succeeds.
+
+  ENDMETHOD.
+
+  METHOD project_features_new_status.
+
+  ENDMETHOD.
+
+  METHOD project_ids_are_unique.
+
+  ENDMETHOD.
+
+  METHOD project_id_is_assigned.
+
+  ENDMETHOD.
+
+  METHOD put_on_hold_after_cancel_fails.
+
+  ENDMETHOD.
+
+  METHOD put_on_hold_from_new_ok.
+
+  ENDMETHOD.
+
+  METHOD resume_from_new_fails.
+
+  ENDMETHOD.
+
+  METHOD resume_from_on_hold_ok.
+
+  ENDMETHOD.
+
+  METHOD start_project_from_new_ok.
+
+  ENDMETHOD.
+
+  METHOD start_project_twice_fails.
+
   ENDMETHOD.
 
 ENDCLASS.
