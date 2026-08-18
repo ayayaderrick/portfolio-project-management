@@ -196,11 +196,27 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD cancel_from_new_ok.
 
+  "=====================================================================
+  " Project: numbering (setProjectId)
+  "=====================================================================
+  METHOD project_id_is_assigned.
+    create_project(
+      IMPORTING
+        ev_project_uuid = DATA(lv_project_uuid) ).
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project
+        FIELDS ( ProjectID )
+        WITH VALUE #( ( ProjectUUID = lv_project_uuid ) )
+      RESULT DATA(lt_projects).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_projects[ 1 ]-ProjectID
+        msg = |ProjectID should be assigned by the number range on create| ).
   ENDMETHOD.
 
-  METHOD cancel_twice_fails.
+  METHOD project_ids_are_unique.
 
   ENDMETHOD.
 
@@ -212,15 +228,11 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD project_features_new_status.
+  METHOD start_project_from_new_ok.
 
   ENDMETHOD.
 
-  METHOD project_ids_are_unique.
-
-  ENDMETHOD.
-
-  METHOD project_id_is_assigned.
+  METHOD start_project_twice_fails.
 
   ENDMETHOD.
 
@@ -232,20 +244,30 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD resume_from_new_fails.
-
-  ENDMETHOD.
-
   METHOD resume_from_on_hold_ok.
 
   ENDMETHOD.
 
-  METHOD start_project_from_new_ok.
+  METHOD resume_from_new_fails.
 
   ENDMETHOD.
 
-  METHOD start_project_twice_fails.
+  METHOD cancel_from_new_ok.
 
   ENDMETHOD.
+
+  METHOD cancel_twice_fails.
+
+  ENDMETHOD.
+
+  METHOD project_features_new_status.
+
+  ENDMETHOD.
+
+
+
+
+
+
 
 ENDCLASS.
