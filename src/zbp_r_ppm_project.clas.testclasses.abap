@@ -298,7 +298,24 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   ENDMETHOD.
 
+  "===========================================================================
+  " Project Actions: startProject / putOnHold / resumeProject / cancelProject
+  "===========================================================================
   METHOD start_project_from_new_ok.
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    EXECUTE startProject
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    RESULT DATA(lt_result)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-project ).
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_result[ 1 ]-%param-Status
+        exp = zif_ppm_constants=>project_status-in_progress ).
 
   ENDMETHOD.
 
