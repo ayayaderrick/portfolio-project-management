@@ -287,6 +287,15 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD dates_valid_range_succeeds.
 
+    create_project(
+      EXPORTING
+        iv_start_date   = '20260101'
+        iv_end_date     = '20261231'
+      IMPORTING
+        et_failed       = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-project ).
+
   ENDMETHOD.
 
   METHOD start_project_from_new_ok.
