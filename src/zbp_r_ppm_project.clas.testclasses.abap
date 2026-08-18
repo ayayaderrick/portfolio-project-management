@@ -410,6 +410,18 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD resume_from_new_fails.
 
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    EXECUTE resumeProject
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-project
+        msg = |Only ON_HOLD projects can be resumed| ).
+
   ENDMETHOD.
 
   METHOD cancel_from_new_ok.
