@@ -217,7 +217,34 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD project_ids_are_unique.
+     create_project( IMPORTING ev_project_uuid = DATA(lv_uuid_1) ).
 
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project
+        CREATE FIELDS ( ProjectName Description StartDate EndDate )
+        WITH VALUE #( ( %cid = 'PROJ2'
+                         ProjectName = 'Second Project'
+                         Description = 'Created by ABAP Unit'
+                         StartDate   = '20260101'
+                         EndDate     = '20261231' ) )
+      MAPPED DATA(ls_mapped)
+      FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-project ).
+
+    DATA(lv_uuid_2) = ls_mapped-project[ %cid = 'PROJ2' ]-ProjectUUID.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project
+        FIELDS ( ProjectID )
+        WITH VALUE #( ( ProjectUUID = lv_uuid_1 )
+                       ( ProjectUUID = lv_uuid_2 ) )
+      RESULT DATA(lt_projects).
+
+    cl_abap_unit_assert=>assert_equals( act = lines( lt_projects ) exp = 2 ).
+    cl_abap_unit_assert=>assert_differs(
+        act = lt_projects[ ProjectUUID = lv_uuid_1 ]-ProjectID
+        exp = lt_projects[ ProjectUUID = lv_uuid_2 ]-ProjectID ).
   ENDMETHOD.
 
   METHOD dates_end_before_start_fails.
