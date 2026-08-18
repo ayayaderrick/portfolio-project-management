@@ -372,10 +372,11 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
     create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
 
     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
-      ENTITY Project EXECUTE putOnHold
-        FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
-      RESULT DATA(lt_result)
-      FAILED DATA(lt_failed).
+    ENTITY Project
+    EXECUTE putOnHold
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    RESULT DATA(lt_result)
+    FAILED DATA(lt_failed).
 
     cl_abap_unit_assert=>assert_initial( lt_failed-project ).
     cl_abap_unit_assert=>assert_equals(
@@ -385,6 +386,25 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD resume_from_on_hold_ok.
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project EXECUTE putOnHold
+        FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+      FAILED DATA(lt_failed_hold).
+    cl_abap_unit_assert=>assert_initial( lt_failed_hold-project ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project EXECUTE resumeProject
+        FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+      RESULT DATA(lt_result)
+      FAILED DATA(lt_failed_resume).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed_resume-project ).
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_result[ 1 ]-%param-Status
+        exp = zif_ppm_constants=>project_status-in_progress ).
 
   ENDMETHOD.
 
