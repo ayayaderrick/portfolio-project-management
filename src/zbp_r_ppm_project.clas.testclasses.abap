@@ -444,6 +444,26 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD cancel_twice_fails.
 
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    EXECUTE cancelProject
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    FAILED DATA(lt_failed_1).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed_1-project ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    EXECUTE cancelProject
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    FAILED DATA(lt_failed_2).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed_2-project
+        msg = |A cancelled project cannot be cancelled again| ).
+
   ENDMETHOD.
 
   METHOD project_features_new_status.
