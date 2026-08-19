@@ -575,7 +575,33 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   ENDMETHOD.
 
+  "=====================================================================
+  " Milestone: validateSequenceNumber
+  "=====================================================================
   METHOD duplicate_sequence_no_fails.
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ1'
+                    ProjectName = 'Test Project'
+                    Description = 'd'
+                    StartDate   = '20260101'
+                    EndDate     = '20261231' ) )
+    ENTITY Project
+    CREATE BY \_Milestone
+    FIELDS ( MilestoneName Description SequenceNo DueDate )
+    WITH VALUE #( ( %cid_ref = 'PROJ1'
+                    %target  = VALUE #(
+                        ( %cid = 'MS1' MilestoneName = 'First'  Description = 'd'
+                          SequenceNo = 1 DueDate = '20260201' )
+                        ( %cid = 'MS2' MilestoneName = 'Second' Description = 'd'
+                          SequenceNo = 1 DueDate = '20260301' ) ) ) )
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-milestone
+        msg = |Two milestones with the same sequence number in one project must be rejected| ).
 
   ENDMETHOD.
 
