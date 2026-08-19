@@ -800,7 +800,20 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   ENDMETHOD.
 
+  "=====================================================================
+  " Task: validateCompletedTask
+  "=====================================================================
   METHOD done_task_without_owner_fails.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status = zif_ppm_constants=>task_status-done
+      IMPORTING
+        et_failed      = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-task
+        msg = |A DONE task without an assignee must be rejected| ).
 
   ENDMETHOD.
 
