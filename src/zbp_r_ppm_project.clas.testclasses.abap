@@ -547,6 +547,18 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD ms_due_date_after_end_fails.
 
+    create_project_with_milestone(
+      EXPORTING
+        iv_project_start = '20260101'
+        iv_project_end   = '20261231'
+        iv_ms_due_date   = '20270115'
+      IMPORTING
+        et_failed        = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-milestone
+        msg = |A due date after the project end date must be rejected| ).
+
   ENDMETHOD.
 
   METHOD ms_due_date_in_range_succeeds.
