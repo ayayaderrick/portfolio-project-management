@@ -830,11 +830,26 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD completion_percentage_partial.
+  "=====================================================================
+  " Task -> Project: calculateProjectCompletion
+  "=====================================================================
+  METHOD completion_percentage_no_tasks.
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    FIELDS ( CompletionPercentage )
+    WITH VALUE #( ( ProjectUUID = lv_uuid ) )
+    RESULT DATA(lt_projects).
+
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_projects[ 1 ]-CompletionPercentage
+        exp = 0 ).
 
   ENDMETHOD.
 
-  METHOD completion_percentage_no_tasks.
+  METHOD completion_percentage_partial.
 
   ENDMETHOD.
 
