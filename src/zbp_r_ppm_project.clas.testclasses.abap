@@ -789,6 +789,15 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD task_due_on_ms_due_succeeds.
 
+    create_full_hierarchy(
+      EXPORTING
+        iv_ms_due_date   = '20260615'
+        iv_task_due_date = '20260615'
+      IMPORTING
+        et_failed        = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+
   ENDMETHOD.
 
   METHOD done_task_without_owner_fails.
