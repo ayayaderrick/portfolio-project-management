@@ -480,9 +480,49 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   ENDMETHOD.
 
-
-
+  "=====================================================================
+  " Milestone: numbering (setMilestoneId)
+  "=====================================================================
   METHOD milestone_ids_are_sequential.
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ1'
+                    ProjectName = 'Test Project'
+                    Description = 'Created by ABAP Unit'
+                    StartDate   = '20260101'
+                    EndDate     = '20261231' ) )
+    ENTITY Project
+    CREATE BY \_Milestone
+    FIELDS ( MilestoneName Description SequenceNo DueDate )
+    WITH VALUE #( ( %cid_ref = 'PROJ1'
+                    %target  = VALUE #(
+                        ( %cid = 'MS1' MilestoneName = 'First'  Description = 'd'
+                          SequenceNo = 1 DueDate = '20260201' )
+                        ( %cid = 'MS2' MilestoneName = 'Second' Description = 'd'
+                          SequenceNo = 2 DueDate = '20260301' ) ) ) )
+    MAPPED DATA(ls_mapped)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-milestone ).
+
+    DATA(lv_ms1_uuid) = ls_mapped-milestone[ %cid = 'MS1' ]-MilestoneUuid.
+    DATA(lv_ms2_uuid) = ls_mapped-milestone[ %cid = 'MS2' ]-MilestoneUuid.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone
+    FIELDS ( MilestoneId )
+    WITH VALUE #( ( MilestoneUuid = lv_ms1_uuid )
+                  ( MilestoneUuid = lv_ms2_uuid ) )
+    RESULT DATA(lt_milestones).
+
+    DATA(lv_id_1) = lt_milestones[ MilestoneUuid = lv_ms1_uuid ]-MilestoneId.
+    DATA(lv_id_2) = lt_milestones[ MilestoneUuid = lv_ms2_uuid ]-MilestoneId.
+
+    cl_abap_unit_assert=>assert_not_initial( lv_id_1 ).
+    cl_abap_unit_assert=>assert_not_initial( lv_id_2 ).
+    cl_abap_unit_assert=>assert_equals( act = lv_id_2 - lv_id_1 exp = 1 ).
 
   ENDMETHOD.
 
