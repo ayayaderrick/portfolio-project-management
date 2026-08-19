@@ -769,7 +769,21 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   ENDMETHOD.
 
+  "=====================================================================
+  " Task: validateTaskDueDate
+  "=====================================================================
   METHOD task_due_after_ms_due_fails.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_ms_due_date   = '20260615'
+        iv_task_due_date = '20260701'
+      IMPORTING
+        et_failed        = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-task
+        msg = |A task due after its milestone's due date must be rejected| ).
 
   ENDMETHOD.
 
