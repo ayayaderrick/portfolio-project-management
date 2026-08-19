@@ -24,8 +24,8 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
         iv_end_date     TYPE zppm_end_date DEFAULT '20261231'
       EXPORTING
         ev_project_uuid TYPE sysuuid_x16
-        et_failed            TYPE ty_failed_early
-        et_reported          TYPE ty_reported_early.
+        et_failed       TYPE ty_failed_early
+        et_reported     TYPE ty_reported_early.
 
     METHODS create_project_with_milestone
       IMPORTING
@@ -36,8 +36,8 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
       EXPORTING
         ev_project_uuid   TYPE sysuuid_x16
         ev_milestone_uuid TYPE sysuuid_x16
-        et_failed            TYPE ty_failed_early
-        et_reported          TYPE ty_reported_early.
+        et_failed         TYPE ty_failed_early
+        et_reported       TYPE ty_reported_early.
 
     METHODS create_full_hierarchy
       IMPORTING
@@ -51,8 +51,8 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
         ev_project_uuid     TYPE sysuuid_x16
         ev_milestone_uuid   TYPE sysuuid_x16
         ev_task_uuid        TYPE sysuuid_x16
-        et_failed            TYPE ty_failed_early
-        et_reported          TYPE ty_reported_early.
+        et_failed           TYPE ty_failed_early
+        et_reported         TYPE ty_reported_early.
 
     "---------------------------------------------------------------
     " Project level
@@ -126,17 +126,17 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   "=====================================================================
   METHOD create_project.
 
-     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
-      ENTITY Project
-        CREATE FIELDS ( ProjectName Description StartDate EndDate )
-        WITH VALUE #( ( %cid = 'PROJ1'
-                         ProjectName = 'Test Project'
-                         Description = 'Created by ABAP Unit'
-                         StartDate   = iv_start_date
-                         EndDate     = iv_end_date ) )
-      MAPPED   DATA(ls_mapped)
-      FAILED   et_failed
-      REPORTED et_reported.
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+     ENTITY Project
+       CREATE FIELDS ( ProjectName Description StartDate EndDate )
+       WITH VALUE #( ( %cid = 'PROJ1'
+                        ProjectName = 'Test Project'
+                        Description = 'Created by ABAP Unit'
+                        StartDate   = iv_start_date
+                        EndDate     = iv_end_date ) )
+     MAPPED   DATA(ls_mapped)
+     FAILED   et_failed
+     REPORTED et_reported.
 
     IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
       ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
@@ -144,27 +144,27 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD create_project_with_milestone.
-     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
-      ENTITY Project
-        CREATE FIELDS ( ProjectName Description StartDate EndDate )
-        WITH VALUE #( ( %cid = 'PROJ1'
-                         ProjectName = 'Test Project'
-                         Description = 'Created by ABAP Unit'
-                         StartDate   = iv_project_start
-                         EndDate     = iv_project_end ) )
-      ENTITY Project
-        CREATE BY \_Milestone
-        FIELDS ( MilestoneName Description SequenceNo DueDate )
-        WITH VALUE #( ( %cid_ref = 'PROJ1'
-                         %target  = VALUE #(
-                            ( %cid          = 'MS1'
-                              MilestoneName = 'Milestone 1'
-                              Description   = 'Created by ABAP Unit'
-                              SequenceNo    = iv_ms_sequence_no
-                              DueDate       = iv_ms_due_date ) ) ) )
-      MAPPED   DATA(ls_mapped)
-      FAILED   et_failed
-      REPORTED et_reported.
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+     ENTITY Project
+       CREATE FIELDS ( ProjectName Description StartDate EndDate )
+       WITH VALUE #( ( %cid = 'PROJ1'
+                        ProjectName = 'Test Project'
+                        Description = 'Created by ABAP Unit'
+                        StartDate   = iv_project_start
+                        EndDate     = iv_project_end ) )
+     ENTITY Project
+       CREATE BY \_Milestone
+       FIELDS ( MilestoneName Description SequenceNo DueDate )
+       WITH VALUE #( ( %cid_ref = 'PROJ1'
+                        %target  = VALUE #(
+                           ( %cid          = 'MS1'
+                             MilestoneName = 'Milestone 1'
+                             Description   = 'Created by ABAP Unit'
+                             SequenceNo    = iv_ms_sequence_no
+                             DueDate       = iv_ms_due_date ) ) ) )
+     MAPPED   DATA(ls_mapped)
+     FAILED   et_failed
+     REPORTED et_reported.
 
     IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
       ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
@@ -175,39 +175,39 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD create_full_hierarchy.
-     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
-      ENTITY Project
-        CREATE FIELDS ( ProjectName Description StartDate EndDate )
-        WITH VALUE #( ( %cid = 'PROJ1'
-                         ProjectName = 'Test Project'
-                         Description = 'Created by ABAP Unit'
-                         StartDate   = iv_project_start
-                         EndDate     = iv_project_end ) )
-      ENTITY Project
-        CREATE BY \_Milestone
-        FIELDS ( MilestoneName Description SequenceNo DueDate )
-        WITH VALUE #( ( %cid_ref = 'PROJ1'
-                         %target  = VALUE #(
-                            ( %cid          = 'MS1'
-                              MilestoneName = 'Milestone 1'
-                              Description   = 'Created by ABAP Unit'
-                              SequenceNo    = 1
-                              DueDate       = iv_ms_due_date ) ) ) )
-      ENTITY Milestone
-        CREATE BY \_Task
-        FIELDS ( TaskName Description Priority DueDate Status AssignedTo )
-        WITH VALUE #( ( %cid_ref = 'MS1'
-                         %target  = VALUE #(
-                            ( %cid        = 'TASK1'
-                              TaskName    = 'Task 1'
-                              Description = 'Created by ABAP Unit'
-                              Priority    = zif_ppm_constants=>priority-medium
-                              DueDate     = iv_task_due_date
-                              Status      = iv_task_status
-                              AssignedTo  = iv_task_assigned_to ) ) ) )
-      MAPPED   DATA(ls_mapped)
-      FAILED   et_failed
-      REPORTED et_reported.
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+     ENTITY Project
+       CREATE FIELDS ( ProjectName Description StartDate EndDate )
+       WITH VALUE #( ( %cid = 'PROJ1'
+                        ProjectName = 'Test Project'
+                        Description = 'Created by ABAP Unit'
+                        StartDate   = iv_project_start
+                        EndDate     = iv_project_end ) )
+     ENTITY Project
+       CREATE BY \_Milestone
+       FIELDS ( MilestoneName Description SequenceNo DueDate )
+       WITH VALUE #( ( %cid_ref = 'PROJ1'
+                        %target  = VALUE #(
+                           ( %cid          = 'MS1'
+                             MilestoneName = 'Milestone 1'
+                             Description   = 'Created by ABAP Unit'
+                             SequenceNo    = 1
+                             DueDate       = iv_ms_due_date ) ) ) )
+     ENTITY Milestone
+       CREATE BY \_Task
+       FIELDS ( TaskName Description Priority DueDate Status AssignedTo )
+       WITH VALUE #( ( %cid_ref = 'MS1'
+                        %target  = VALUE #(
+                           ( %cid        = 'TASK1'
+                             TaskName    = 'Task 1'
+                             Description = 'Created by ABAP Unit'
+                             Priority    = zif_ppm_constants=>priority-medium
+                             DueDate     = iv_task_due_date
+                             Status      = iv_task_status
+                             AssignedTo  = iv_task_assigned_to ) ) ) )
+     MAPPED   DATA(ls_mapped)
+     FAILED   et_failed
+     REPORTED et_reported.
 
     IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
       ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
@@ -606,6 +606,27 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD unique_sequence_no_succeeds.
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ1'
+                    ProjectName = 'Test Project'
+                    Description = 'd'
+                    StartDate   = '20260101'
+                    EndDate     = '20261231' ) )
+    ENTITY Project
+    CREATE BY \_Milestone
+    FIELDS ( MilestoneName Description SequenceNo DueDate )
+    WITH VALUE #( ( %cid_ref = 'PROJ1'
+                    %target  = VALUE #(
+                        ( %cid = 'MS1' MilestoneName = 'First'  Description = 'd'
+                          SequenceNo = 1 DueDate = '20260201' )
+                        ( %cid = 'MS2' MilestoneName = 'Second' Description = 'd'
+                          SequenceNo = 2 DueDate = '20260301' ) ) ) )
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-milestone ).
 
   ENDMETHOD.
 
