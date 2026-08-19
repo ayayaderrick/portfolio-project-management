@@ -651,6 +651,32 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD proj_status_rolls_to_completed.
 
+    " A project whose single milestone becomes COMPLETED must itself
+    " roll up to COMPLETED. Milestone status is set via a completed,
+    " assigned task (see synchronizeMilestoneStatus tests below).
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status      = zif_ppm_constants=>task_status-done
+        iv_task_assigned_to = 'TESTER01'
+      IMPORTING
+        ev_project_uuid     = DATA(lv_project_uuid)
+        et_failed           = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project
+        FIELDS ( Status CompletionPercentage )
+        WITH VALUE #( ( ProjectUUID = lv_project_uuid ) )
+      RESULT DATA(lt_projects).
+
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_projects[ 1 ]-Status
+        exp = zif_ppm_constants=>project_status-completed ).
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_projects[ 1 ]-CompletionPercentage
+        exp = 100 ).
+
   ENDMETHOD.
 
 ENDCLASS.
