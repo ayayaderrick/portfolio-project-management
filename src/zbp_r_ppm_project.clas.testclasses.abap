@@ -819,6 +819,15 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD done_task_with_owner_succeeds.
 
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status      = zif_ppm_constants=>task_status-done
+        iv_task_assigned_to = 'TESTER01'
+      IMPORTING
+        et_failed           = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+
   ENDMETHOD.
 
   METHOD completion_percentage_partial.
