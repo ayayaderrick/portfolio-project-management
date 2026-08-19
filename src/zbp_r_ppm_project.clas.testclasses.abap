@@ -75,7 +75,21 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
     METHODS cancel_from_new_ok FOR TESTING.
     METHODS cancel_twice_fails FOR TESTING.
 
-    METHODS project_features_new_status FOR TESTING.
+    "---------------------------------------------------------------
+    " Milestone level
+    "---------------------------------------------------------------
+    METHODS milestone_ids_are_sequential FOR TESTING.
+
+    METHODS ms_due_date_before_start_fails FOR TESTING.
+    METHODS ms_due_date_after_end_fails FOR TESTING.
+    METHODS ms_due_date_in_range_succeeds FOR TESTING.
+
+    METHODS duplicate_sequence_no_fails FOR TESTING.
+    METHODS unique_sequence_no_succeeds FOR TESTING.
+
+    METHODS proj_status_new_no_milestones FOR TESTING.
+    METHODS proj_status_rolls_to_completed FOR TESTING.
+
 
 ENDCLASS.
 
@@ -466,14 +480,38 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD project_features_new_status.
+
+
+  METHOD milestone_ids_are_sequential.
 
   ENDMETHOD.
 
+  METHOD ms_due_date_before_start_fails.
 
+  ENDMETHOD.
 
+  METHOD ms_due_date_after_end_fails.
 
+  ENDMETHOD.
 
+  METHOD ms_due_date_in_range_succeeds.
 
+  ENDMETHOD.
+
+  METHOD duplicate_sequence_no_fails.
+
+  ENDMETHOD.
+
+  METHOD unique_sequence_no_succeeds.
+
+  ENDMETHOD.
+
+  METHOD proj_status_new_no_milestones.
+
+  ENDMETHOD.
+
+  METHOD proj_status_rolls_to_completed.
+
+  ENDMETHOD.
 
 ENDCLASS.
