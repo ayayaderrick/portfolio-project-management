@@ -563,6 +563,16 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD ms_due_date_in_range_succeeds.
 
+    create_project_with_milestone(
+      EXPORTING
+        iv_project_start = '20260101'
+        iv_project_end   = '20261231'
+        iv_ms_due_date   = '20260615'
+      IMPORTING
+        et_failed        = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-milestone ).
+
   ENDMETHOD.
 
   METHOD duplicate_sequence_no_fails.
