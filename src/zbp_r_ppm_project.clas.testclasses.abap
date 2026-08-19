@@ -630,7 +630,22 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   ENDMETHOD.
 
+  "=====================================================================
+  " Milestone -> Project: synchronizeProjectStatus
+  "=====================================================================
   METHOD proj_status_new_no_milestones.
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project
+        FIELDS ( Status )
+        WITH VALUE #( ( ProjectUUID = lv_uuid ) )
+      RESULT DATA(lt_projects).
+
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_projects[ 1 ]-Status
+        exp = zif_ppm_constants=>project_status-new ).
 
   ENDMETHOD.
 
