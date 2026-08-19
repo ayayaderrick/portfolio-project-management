@@ -715,7 +715,57 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   ENDMETHOD.
 
+  "=====================================================================
+  " Task: numbering (setTaskId)
+  "=====================================================================
   METHOD task_ids_are_sequential.
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ1' ProjectName = 'p' Description = 'd'
+                    StartDate = '20260101' EndDate = '20261231' ) )
+    ENTITY Project
+    CREATE BY \_Milestone
+    FIELDS ( MilestoneName Description SequenceNo DueDate )
+    WITH VALUE #( ( %cid_ref = 'PROJ1'
+                    %target  = VALUE #(
+                        ( %cid = 'MS1' MilestoneName = 'm' Description = 'd'
+                          SequenceNo = 1 DueDate = '20260615' ) ) ) )
+    ENTITY Milestone
+    CREATE BY \_Task
+    FIELDS ( TaskName Description Priority DueDate Status )
+    WITH VALUE #( ( %cid_ref = 'MS1'
+                    %target  = VALUE #(
+                        ( %cid = 'TASK1' TaskName = 'First' Description = 'd'
+                          Priority = zif_ppm_constants=>priority-low
+                          DueDate = '20260201'
+                          Status = zif_ppm_constants=>task_status-open )
+                        ( %cid = 'TASK2' TaskName = 'Second' Description = 'd'
+                          Priority = zif_ppm_constants=>priority-low
+                          DueDate = '20260201'
+                          Status = zif_ppm_constants=>task_status-open ) ) ) )
+    MAPPED DATA(ls_mapped)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+
+    DATA(lv_task1_uuid) = ls_mapped-task[ %cid = 'TASK1' ]-TaskUuid.
+    DATA(lv_task2_uuid) = ls_mapped-task[ %cid = 'TASK2' ]-TaskUuid.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    FIELDS ( TaskId )
+    WITH VALUE #( ( TaskUuid = lv_task1_uuid )
+                  ( TaskUuid = lv_task2_uuid ) )
+    RESULT DATA(lt_tasks).
+
+    DATA(lv_id_1) = lt_tasks[ TaskUuid = lv_task1_uuid ]-TaskId.
+    DATA(lv_id_2) = lt_tasks[ TaskUuid = lv_task2_uuid ]-TaskId.
+
+    cl_abap_unit_assert=>assert_not_initial( lv_id_1 ).
+    cl_abap_unit_assert=>assert_not_initial( lv_id_2 ).
+    cl_abap_unit_assert=>assert_equals( act = lv_id_2 - lv_id_1 exp = 1 ).
 
   ENDMETHOD.
 
