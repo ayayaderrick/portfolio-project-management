@@ -1131,6 +1131,24 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD complete_task_from_inprog_ok.
 
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status = zif_ppm_constants=>task_status-in_progress
+      IMPORTING
+        ev_task_uuid   = DATA(lv_task_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    EXECUTE completeTask
+    FROM VALUE #( ( %tky-TaskUuid = lv_task_uuid ) )
+    RESULT DATA(lt_result)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_result[ 1 ]-%param-Status
+        exp = zif_ppm_constants=>task_status-done ).
+
   ENDMETHOD.
 
   METHOD complete_task_from_open_fails.
