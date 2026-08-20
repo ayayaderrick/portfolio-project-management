@@ -851,6 +851,51 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD completion_percentage_partial.
 
+    " One milestone with two tasks: one DONE (assigned), one OPEN
+    " -> project completion should be 50%.
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ1' ProjectName = 'p' Description = 'd'
+                    StartDate = '20260101' EndDate = '20261231' ) )
+    ENTITY Project
+    CREATE BY \_Milestone
+    FIELDS ( MilestoneName Description SequenceNo DueDate )
+    WITH VALUE #( ( %cid_ref = 'PROJ1'
+                    %target  = VALUE #(
+                  ( %cid = 'MS1' MilestoneName = 'm' Description = 'd'
+                    SequenceNo = 1 DueDate = '20260615' ) ) ) )
+    ENTITY Milestone
+    CREATE BY \_Task
+    FIELDS ( TaskName Description Priority DueDate Status AssignedTo )
+    WITH VALUE #( ( %cid_ref = 'MS1'
+                    %target  = VALUE #(
+                  ( %cid = 'TASK1' TaskName = 'Done task' Description = 'd'
+                    Priority = zif_ppm_constants=>priority-medium
+                    DueDate = '20260201'
+                    Status = zif_ppm_constants=>task_status-done
+                    AssignedTo = 'TESTER01' )
+                  ( %cid = 'TASK2' TaskName = 'Open task' Description = 'd'
+                    Priority = zif_ppm_constants=>priority-medium
+                    DueDate = '20260201'
+                    Status = zif_ppm_constants=>task_status-open ) ) ) )
+    MAPPED DATA(ls_mapped)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+
+    DATA(lv_project_uuid) = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    FIELDS ( CompletionPercentage )
+    WITH VALUE #( ( ProjectUUID = lv_project_uuid ) )
+    RESULT DATA(lt_projects).
+
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_projects[ 1 ]-CompletionPercentage
+        exp = 50 ).
+
   ENDMETHOD.
 
   METHOD milestone_status_all_open.
