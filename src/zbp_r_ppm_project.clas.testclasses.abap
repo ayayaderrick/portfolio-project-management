@@ -1,0 +1,1213 @@
+CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
+  DURATION SHORT
+  RISK LEVEL HARMLESS.
+
+  PRIVATE SECTION.
+    TYPES:
+      ty_failed_early   TYPE RESPONSE FOR FAILED EARLY zr_ppm_project,
+      ty_reported_early TYPE RESPONSE FOR REPORTED EARLY zr_ppm_project.
+
+    CLASS-DATA: environment TYPE REF TO if_osql_test_environment.
+
+    CLASS-METHODS: class_setup.
+    CLASS-METHODS: class_teardown.
+
+    METHODS setup.
+    METHODS terdown.
+
+    "---------------------------------------------------------------
+    " Test data helpers
+    "---------------------------------------------------------------
+    METHODS create_project
+      IMPORTING
+        iv_start_date   TYPE zppm_start_date DEFAULT '20260101'
+        iv_end_date     TYPE zppm_end_date DEFAULT '20261231'
+      EXPORTING
+        ev_project_uuid TYPE sysuuid_x16
+        et_failed       TYPE ty_failed_early
+        et_reported     TYPE ty_reported_early.
+
+    METHODS create_project_with_milestone
+      IMPORTING
+        iv_project_start  TYPE zppm_start_date DEFAULT '20260101'
+        iv_project_end    TYPE zppm_end_date DEFAULT '20261231'
+        iv_ms_sequence_no TYPE zppm_sequence_no DEFAULT 1
+        iv_ms_due_date    TYPE zppm_due_date DEFAULT '20260615'
+      EXPORTING
+        ev_project_uuid   TYPE sysuuid_x16
+        ev_milestone_uuid TYPE sysuuid_x16
+        et_failed         TYPE ty_failed_early
+        et_reported       TYPE ty_reported_early.
+
+    METHODS create_full_hierarchy
+      IMPORTING
+        iv_project_start    TYPE zppm_start_date DEFAULT '20260101'
+        iv_project_end      TYPE zppm_end_date DEFAULT '20261231'
+        iv_ms_due_date      TYPE zppm_due_date DEFAULT '20260615'
+        iv_task_due_date    TYPE zppm_due_date DEFAULT '20260601'
+        iv_task_status      TYPE zppm_task_status DEFAULT zif_ppm_constants=>task_status-open
+        iv_task_assigned_to TYPE zppm_assigned_to OPTIONAL
+      EXPORTING
+        ev_project_uuid     TYPE sysuuid_x16
+        ev_milestone_uuid   TYPE sysuuid_x16
+        ev_task_uuid        TYPE sysuuid_x16
+        et_failed           TYPE ty_failed_early
+        et_reported         TYPE ty_reported_early.
+
+    "---------------------------------------------------------------
+    " Project level
+    "---------------------------------------------------------------
+    METHODS project_id_is_assigned FOR TESTING.
+    METHODS project_ids_are_unique FOR TESTING.
+
+    METHODS dates_end_before_start_fails FOR TESTING.
+    METHODS dates_valid_range_succeeds FOR TESTING.
+
+    METHODS start_project_from_new_ok FOR TESTING.
+    METHODS start_project_twice_fails FOR TESTING.
+
+    METHODS put_on_hold_from_new_ok FOR TESTING.
+    METHODS put_on_hold_after_cancel_fails FOR TESTING.
+
+    METHODS resume_from_on_hold_ok FOR TESTING.
+    METHODS resume_from_new_fails FOR TESTING.
+
+    METHODS cancel_from_new_ok FOR TESTING.
+    METHODS cancel_twice_fails FOR TESTING.
+
+    "---------------------------------------------------------------
+    " Milestone level
+    "---------------------------------------------------------------
+    METHODS milestone_ids_are_sequential FOR TESTING.
+
+    METHODS ms_due_date_before_start_fails FOR TESTING.
+    METHODS ms_due_date_after_end_fails FOR TESTING.
+    METHODS ms_due_date_in_range_succeeds FOR TESTING.
+
+    METHODS duplicate_sequence_no_fails FOR TESTING.
+    METHODS unique_sequence_no_succeeds FOR TESTING.
+
+    METHODS proj_status_new_no_milestones FOR TESTING.
+    METHODS proj_status_rolls_to_completed FOR TESTING.
+
+    "---------------------------------------------------------------
+    " Task level
+    "---------------------------------------------------------------
+    METHODS task_ids_are_sequential FOR TESTING.
+
+    METHODS task_due_after_ms_due_fails FOR TESTING.
+    METHODS task_due_on_ms_due_succeeds FOR TESTING.
+
+    METHODS done_task_without_owner_fails FOR TESTING.
+    METHODS done_task_with_owner_succeeds FOR TESTING.
+
+    METHODS completion_percentage_partial FOR TESTING.
+    METHODS completion_percentage_no_tasks FOR TESTING.
+
+    METHODS milestone_status_all_open FOR TESTING.
+    METHODS milestone_status_all_done FOR TESTING.
+    METHODS milestone_status_mixed FOR TESTING.
+
+    METHODS start_task_from_open_ok FOR TESTING.
+    METHODS start_task_from_blocked_fails FOR TESTING.
+
+    METHODS block_task_from_open_ok FOR TESTING.
+    METHODS block_task_from_done_fails FOR TESTING.
+
+    METHODS unblock_task_from_blocked_ok FOR TESTING.
+    METHODS unblock_task_from_open_fails FOR TESTING.
+
+    METHODS complete_task_from_inprog_ok FOR TESTING.
+    METHODS complete_task_from_open_fails FOR TESTING.
+
+    METHODS reopen_task_from_done_ok FOR TESTING.
+    METHODS reopen_task_from_open_fails FOR TESTING.
+
+ENDCLASS.
+
+
+CLASS ltcl_ppm_project IMPLEMENTATION.
+
+  METHOD class_setup.
+    environment = cl_osql_test_environment=>create(
+        i_dependency_list = VALUE #(
+            ( 'ZPPM_PROJECT_A' )
+            ( 'ZPPM_PROJECT_D' )
+            ( 'ZPPM_MILESTONE_A' )
+            ( 'ZPPM_MILESTOME_D' )
+            ( 'ZPPM_TASK_A' )
+            ( 'ZPPM_TASK_D' )
+         )
+     ).
+  ENDMETHOD.
+
+  METHOD class_teardown.
+    environment->destroy(  ).
+  ENDMETHOD.
+
+  METHOD setup.
+    environment->clear_doubles(  ).
+  ENDMETHOD.
+
+  METHOD terdown.
+    ROLLBACK ENTITIES.
+  ENDMETHOD.
+
+  "=====================================================================
+  " Helpers
+  "=====================================================================
+  METHOD create_project.
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ1'
+                    ProjectName = 'Test Project'
+                    Description = 'Created by ABAP Unit'
+                    StartDate   = iv_start_date
+                    EndDate     = iv_end_date ) )
+     MAPPED   DATA(ls_mapped)
+     FAILED   et_failed
+     REPORTED et_reported.
+
+    IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
+      ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD create_project_with_milestone.
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ1'
+                    ProjectName = 'Test Project'
+                    Description = 'Created by ABAP Unit'
+                    StartDate   = iv_project_start
+                    EndDate     = iv_project_end ) )
+    ENTITY Project
+    CREATE BY \_Milestone
+    FIELDS ( MilestoneName Description SequenceNo DueDate )
+    WITH VALUE #( ( %cid_ref = 'PROJ1'
+                    %target  = VALUE #(
+                        ( %cid          = 'MS1'
+                          MilestoneName = 'Milestone 1'
+                          Description   = 'Created by ABAP Unit'
+                          SequenceNo    = iv_ms_sequence_no
+                          DueDate       = iv_ms_due_date ) ) ) )
+     MAPPED   DATA(ls_mapped)
+     FAILED   et_failed
+     REPORTED et_reported.
+
+    IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
+      ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
+    ENDIF.
+    IF line_exists( ls_mapped-milestone[ %cid = 'MS1' ] ).
+      ev_milestone_uuid = ls_mapped-milestone[ %cid = 'MS1' ]-MilestoneUuid.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD create_full_hierarchy.
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ1'
+                    ProjectName = 'Test Project'
+                    Description = 'Created by ABAP Unit'
+                    StartDate   = iv_project_start
+                    EndDate     = iv_project_end ) )
+    ENTITY Project
+    CREATE BY \_Milestone
+    FIELDS ( MilestoneName Description SequenceNo DueDate )
+    WITH VALUE #( ( %cid_ref = 'PROJ1'
+                    %target  = VALUE #(
+                        ( %cid          = 'MS1'
+                          MilestoneName = 'Milestone 1'
+                          Description   = 'Created by ABAP Unit'
+                          SequenceNo    = 1
+                          DueDate       = iv_ms_due_date ) ) ) )
+    ENTITY Milestone
+    CREATE BY \_Task
+    FIELDS ( TaskName Description Priority DueDate Status AssignedTo )
+    WITH VALUE #( ( %cid_ref = 'MS1'
+                    %target  = VALUE #(
+                        ( %cid        = 'TASK1'
+                          TaskName    = 'Task 1'
+                          Description = 'Created by ABAP Unit'
+                          Priority    = zif_ppm_constants=>priority-medium
+                          DueDate     = iv_task_due_date
+                          Status      = iv_task_status
+                          AssignedTo  = iv_task_assigned_to ) ) ) )
+     MAPPED   DATA(ls_mapped)
+     FAILED   et_failed
+     REPORTED et_reported.
+
+    IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
+      ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
+    ENDIF.
+    IF line_exists( ls_mapped-milestone[ %cid = 'MS1' ] ).
+      ev_milestone_uuid = ls_mapped-milestone[ %cid = 'MS1' ]-MilestoneUuid.
+    ENDIF.
+    IF line_exists( ls_mapped-task[ %cid = 'TASK1' ] ).
+      ev_task_uuid = ls_mapped-task[ %cid = 'TASK1' ]-TaskUuid.
+    ENDIF.
+  ENDMETHOD.
+
+
+  "=====================================================================
+  " Project: numbering (setProjectId)
+  "=====================================================================
+  METHOD project_id_is_assigned.
+
+    create_project(
+      IMPORTING
+        ev_project_uuid = DATA(lv_project_uuid)
+        et_failed       = DATA(lt_failed)
+        et_reported     = DATA(lt_reported) ).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-project ).
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    FIELDS ( ProjectID )
+    WITH VALUE #( ( ProjectUUID = lv_project_uuid ) )
+    RESULT DATA(lt_projects).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_projects[ 1 ]-ProjectID
+        msg = |ProjectID should be assigned by the number range on create| ).
+
+  ENDMETHOD.
+
+  METHOD project_ids_are_unique.
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid_1) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ2'
+                    ProjectName = 'Second Project'
+                    Description = 'Created by ABAP Unit'
+                    StartDate   = '20260101'
+                    EndDate     = '20261231' ) )
+    MAPPED DATA(ls_mapped)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-project ).
+
+    DATA(lv_uuid_2) = ls_mapped-project[ %cid = 'PROJ2' ]-ProjectUUID.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    FIELDS ( ProjectID )
+    WITH VALUE #( ( ProjectUUID = lv_uuid_1 )
+                  ( ProjectUUID = lv_uuid_2 ) )
+    RESULT DATA(lt_projects).
+
+    cl_abap_unit_assert=>assert_equals( act = lines( lt_projects ) exp = 2 ).
+    cl_abap_unit_assert=>assert_differs(
+        act = lt_projects[ ProjectUUID = lv_uuid_1 ]-ProjectID
+        exp = lt_projects[ ProjectUUID = lv_uuid_2 ]-ProjectID ).
+
+  ENDMETHOD.
+
+  "=====================================================================
+  " Project: validateProjectDates
+  "=====================================================================
+  METHOD dates_end_before_start_fails.
+
+    create_project(
+      EXPORTING
+        iv_start_date   = '20260601'
+        iv_end_date     = '20260101'
+      IMPORTING
+        et_failed       = DATA(lt_failed)
+        et_reported     = DATA(lt_reported) ).
+
+    cl_abap_unit_assert=>fail(
+        msg = |End date before start date must be rejected| ).
+    cl_abap_unit_assert=>assert_not_initial( lt_reported-project ).
+
+  ENDMETHOD.
+
+  METHOD dates_valid_range_succeeds.
+
+    create_project(
+      EXPORTING
+        iv_start_date   = '20260101'
+        iv_end_date     = '20261231'
+      IMPORTING
+        et_failed       = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-project ).
+
+  ENDMETHOD.
+
+  "===========================================================================
+  " Project Actions: startProject / putOnHold / resumeProject / cancelProject
+  "===========================================================================
+  METHOD start_project_from_new_ok.
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    EXECUTE startProject
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    RESULT DATA(lt_result)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-project ).
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_result[ 1 ]-%param-Status
+        exp = zif_ppm_constants=>project_status-in_progress ).
+
+  ENDMETHOD.
+
+  METHOD start_project_twice_fails.
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    EXECUTE startProject
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    FAILED DATA(lt_failed_1).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed_1-project ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    EXECUTE startProject
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    FAILED DATA(lt_failed_2).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed_2-project
+        msg = |Starting a project that is already IN_PROGRESS must fail| ).
+
+  ENDMETHOD.
+
+  METHOD put_on_hold_after_cancel_fails.
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    EXECUTE cancelProject
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    FAILED DATA(lt_failed_cancel).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed_cancel-project ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    EXECUTE putOnHold
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    FAILED DATA(lt_failed_hold).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed_hold-project
+        msg = |A cancelled project cannot be put on hold| ).
+
+  ENDMETHOD.
+
+  METHOD put_on_hold_from_new_ok.
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    EXECUTE putOnHold
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    RESULT DATA(lt_result)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-project ).
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_result[ 1 ]-%param-Status
+        exp = zif_ppm_constants=>project_status-on_hold ).
+
+  ENDMETHOD.
+
+  METHOD resume_from_on_hold_ok.
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project EXECUTE putOnHold
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    FAILED DATA(lt_failed_hold).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed_hold-project ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project EXECUTE resumeProject
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    RESULT DATA(lt_result)
+    FAILED DATA(lt_failed_resume).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed_resume-project ).
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_result[ 1 ]-%param-Status
+        exp = zif_ppm_constants=>project_status-in_progress ).
+
+  ENDMETHOD.
+
+  METHOD resume_from_new_fails.
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    EXECUTE resumeProject
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-project
+        msg = |Only ON_HOLD projects can be resumed| ).
+
+  ENDMETHOD.
+
+  METHOD cancel_from_new_ok.
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    EXECUTE cancelProject
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    RESULT DATA(lt_result)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-project ).
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_result[ 1 ]-%param-Status
+        exp = zif_ppm_constants=>project_status-cancelled ).
+
+  ENDMETHOD.
+
+  METHOD cancel_twice_fails.
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    EXECUTE cancelProject
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    FAILED DATA(lt_failed_1).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed_1-project ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    EXECUTE cancelProject
+    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+    FAILED DATA(lt_failed_2).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed_2-project
+        msg = |A cancelled project cannot be cancelled again| ).
+
+  ENDMETHOD.
+
+  "=====================================================================
+  " Milestone: numbering (setMilestoneId)
+  "=====================================================================
+  METHOD milestone_ids_are_sequential.
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ1'
+                    ProjectName = 'Test Project'
+                    Description = 'Created by ABAP Unit'
+                    StartDate   = '20260101'
+                    EndDate     = '20261231' ) )
+    ENTITY Project
+    CREATE BY \_Milestone
+    FIELDS ( MilestoneName Description SequenceNo DueDate )
+    WITH VALUE #( ( %cid_ref = 'PROJ1'
+                    %target  = VALUE #(
+                        ( %cid = 'MS1' MilestoneName = 'First'  Description = 'd'
+                          SequenceNo = 1 DueDate = '20260201' )
+                        ( %cid = 'MS2' MilestoneName = 'Second' Description = 'd'
+                          SequenceNo = 2 DueDate = '20260301' ) ) ) )
+    MAPPED DATA(ls_mapped)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-milestone ).
+
+    DATA(lv_ms1_uuid) = ls_mapped-milestone[ %cid = 'MS1' ]-MilestoneUuid.
+    DATA(lv_ms2_uuid) = ls_mapped-milestone[ %cid = 'MS2' ]-MilestoneUuid.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone
+    FIELDS ( MilestoneId )
+    WITH VALUE #( ( MilestoneUuid = lv_ms1_uuid )
+                  ( MilestoneUuid = lv_ms2_uuid ) )
+    RESULT DATA(lt_milestones).
+
+    DATA(lv_id_1) = lt_milestones[ MilestoneUuid = lv_ms1_uuid ]-MilestoneId.
+    DATA(lv_id_2) = lt_milestones[ MilestoneUuid = lv_ms2_uuid ]-MilestoneId.
+
+    cl_abap_unit_assert=>assert_not_initial( lv_id_1 ).
+    cl_abap_unit_assert=>assert_not_initial( lv_id_2 ).
+    cl_abap_unit_assert=>assert_equals( act = lv_id_2 - lv_id_1 exp = 1 ).
+
+  ENDMETHOD.
+
+  "=====================================================================
+  " Milestone: validateMilestoneDueDate
+  "=====================================================================
+  METHOD ms_due_date_before_start_fails.
+
+    create_project_with_milestone(
+      EXPORTING
+        iv_project_start = '20260101'
+        iv_project_end   = '20261231'
+        iv_ms_due_date   = '20251215'
+      IMPORTING
+        et_failed        = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-milestone
+        msg = |A due date before the project start date must be rejected| ).
+
+  ENDMETHOD.
+
+  METHOD ms_due_date_after_end_fails.
+
+    create_project_with_milestone(
+      EXPORTING
+        iv_project_start = '20260101'
+        iv_project_end   = '20261231'
+        iv_ms_due_date   = '20270115'
+      IMPORTING
+        et_failed        = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-milestone
+        msg = |A due date after the project end date must be rejected| ).
+
+  ENDMETHOD.
+
+  METHOD ms_due_date_in_range_succeeds.
+
+    create_project_with_milestone(
+      EXPORTING
+        iv_project_start = '20260101'
+        iv_project_end   = '20261231'
+        iv_ms_due_date   = '20260615'
+      IMPORTING
+        et_failed        = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-milestone ).
+
+  ENDMETHOD.
+
+  "=====================================================================
+  " Milestone: validateSequenceNumber
+  "=====================================================================
+  METHOD duplicate_sequence_no_fails.
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ1'
+                    ProjectName = 'Test Project'
+                    Description = 'd'
+                    StartDate   = '20260101'
+                    EndDate     = '20261231' ) )
+    ENTITY Project
+    CREATE BY \_Milestone
+    FIELDS ( MilestoneName Description SequenceNo DueDate )
+    WITH VALUE #( ( %cid_ref = 'PROJ1'
+                    %target  = VALUE #(
+                        ( %cid = 'MS1' MilestoneName = 'First'  Description = 'd'
+                          SequenceNo = 1 DueDate = '20260201' )
+                        ( %cid = 'MS2' MilestoneName = 'Second' Description = 'd'
+                          SequenceNo = 1 DueDate = '20260301' ) ) ) )
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-milestone
+        msg = |Two milestones with the same sequence number in one project must be rejected| ).
+
+  ENDMETHOD.
+
+  METHOD unique_sequence_no_succeeds.
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ1'
+                    ProjectName = 'Test Project'
+                    Description = 'd'
+                    StartDate   = '20260101'
+                    EndDate     = '20261231' ) )
+    ENTITY Project
+    CREATE BY \_Milestone
+    FIELDS ( MilestoneName Description SequenceNo DueDate )
+    WITH VALUE #( ( %cid_ref = 'PROJ1'
+                    %target  = VALUE #(
+                        ( %cid = 'MS1' MilestoneName = 'First'  Description = 'd'
+                          SequenceNo = 1 DueDate = '20260201' )
+                        ( %cid = 'MS2' MilestoneName = 'Second' Description = 'd'
+                          SequenceNo = 2 DueDate = '20260301' ) ) ) )
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-milestone ).
+
+  ENDMETHOD.
+
+  "=====================================================================
+  " Milestone -> Project: synchronizeProjectStatus
+  "=====================================================================
+  METHOD proj_status_new_no_milestones.
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+      ENTITY Project
+        FIELDS ( Status )
+        WITH VALUE #( ( ProjectUUID = lv_uuid ) )
+      RESULT DATA(lt_projects).
+
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_projects[ 1 ]-Status
+        exp = zif_ppm_constants=>project_status-new ).
+
+  ENDMETHOD.
+
+  METHOD proj_status_rolls_to_completed.
+
+    " A project whose single milestone becomes COMPLETED must itself
+    " roll up to COMPLETED. Milestone status is set via a completed,
+    " assigned task (see synchronizeMilestoneStatus tests below).
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status      = zif_ppm_constants=>task_status-done
+        iv_task_assigned_to = 'TESTER01'
+      IMPORTING
+        ev_project_uuid     = DATA(lv_project_uuid)
+        et_failed           = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    FIELDS ( Status CompletionPercentage )
+    WITH VALUE #( ( ProjectUUID = lv_project_uuid ) )
+    RESULT DATA(lt_projects).
+
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_projects[ 1 ]-Status
+        exp = zif_ppm_constants=>project_status-completed ).
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_projects[ 1 ]-CompletionPercentage
+        exp = 100 ).
+
+  ENDMETHOD.
+
+  "=====================================================================
+  " Task: numbering (setTaskId)
+  "=====================================================================
+  METHOD task_ids_are_sequential.
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ1' ProjectName = 'p' Description = 'd'
+                    StartDate = '20260101' EndDate = '20261231' ) )
+    ENTITY Project
+    CREATE BY \_Milestone
+    FIELDS ( MilestoneName Description SequenceNo DueDate )
+    WITH VALUE #( ( %cid_ref = 'PROJ1'
+                    %target  = VALUE #(
+                        ( %cid = 'MS1' MilestoneName = 'm' Description = 'd'
+                          SequenceNo = 1 DueDate = '20260615' ) ) ) )
+    ENTITY Milestone
+    CREATE BY \_Task
+    FIELDS ( TaskName Description Priority DueDate Status )
+    WITH VALUE #( ( %cid_ref = 'MS1'
+                    %target  = VALUE #(
+                        ( %cid = 'TASK1' TaskName = 'First' Description = 'd'
+                          Priority = zif_ppm_constants=>priority-low
+                          DueDate = '20260201'
+                          Status = zif_ppm_constants=>task_status-open )
+                        ( %cid = 'TASK2' TaskName = 'Second' Description = 'd'
+                          Priority = zif_ppm_constants=>priority-low
+                          DueDate = '20260201'
+                          Status = zif_ppm_constants=>task_status-open ) ) ) )
+    MAPPED DATA(ls_mapped)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+
+    DATA(lv_task1_uuid) = ls_mapped-task[ %cid = 'TASK1' ]-TaskUuid.
+    DATA(lv_task2_uuid) = ls_mapped-task[ %cid = 'TASK2' ]-TaskUuid.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    FIELDS ( TaskId )
+    WITH VALUE #( ( TaskUuid = lv_task1_uuid )
+                  ( TaskUuid = lv_task2_uuid ) )
+    RESULT DATA(lt_tasks).
+
+    DATA(lv_id_1) = lt_tasks[ TaskUuid = lv_task1_uuid ]-TaskId.
+    DATA(lv_id_2) = lt_tasks[ TaskUuid = lv_task2_uuid ]-TaskId.
+
+    cl_abap_unit_assert=>assert_not_initial( lv_id_1 ).
+    cl_abap_unit_assert=>assert_not_initial( lv_id_2 ).
+    cl_abap_unit_assert=>assert_equals( act = lv_id_2 - lv_id_1 exp = 1 ).
+
+  ENDMETHOD.
+
+  "=====================================================================
+  " Task: validateTaskDueDate
+  "=====================================================================
+  METHOD task_due_after_ms_due_fails.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_ms_due_date   = '20260615'
+        iv_task_due_date = '20260701'
+      IMPORTING
+        et_failed        = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-task
+        msg = |A task due after its milestone's due date must be rejected| ).
+
+  ENDMETHOD.
+
+  METHOD task_due_on_ms_due_succeeds.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_ms_due_date   = '20260615'
+        iv_task_due_date = '20260615'
+      IMPORTING
+        et_failed        = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+
+  ENDMETHOD.
+
+  "=====================================================================
+  " Task: validateCompletedTask
+  "=====================================================================
+  METHOD done_task_without_owner_fails.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status = zif_ppm_constants=>task_status-done
+      IMPORTING
+        et_failed      = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-task
+        msg = |A DONE task without an assignee must be rejected| ).
+
+  ENDMETHOD.
+
+  METHOD done_task_with_owner_succeeds.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status      = zif_ppm_constants=>task_status-done
+        iv_task_assigned_to = 'TESTER01'
+      IMPORTING
+        et_failed           = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+
+  ENDMETHOD.
+
+  "=====================================================================
+  " Task -> Project: calculateProjectCompletion
+  "=====================================================================
+  METHOD completion_percentage_no_tasks.
+
+    create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    FIELDS ( CompletionPercentage )
+    WITH VALUE #( ( ProjectUUID = lv_uuid ) )
+    RESULT DATA(lt_projects).
+
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_projects[ 1 ]-CompletionPercentage
+        exp = 0 ).
+
+  ENDMETHOD.
+
+  METHOD completion_percentage_partial.
+
+    " One milestone with two tasks: one DONE (assigned), one OPEN
+    " -> project completion should be 50%.
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ1' ProjectName = 'p' Description = 'd'
+                    StartDate = '20260101' EndDate = '20261231' ) )
+    ENTITY Project
+    CREATE BY \_Milestone
+    FIELDS ( MilestoneName Description SequenceNo DueDate )
+    WITH VALUE #( ( %cid_ref = 'PROJ1'
+                    %target  = VALUE #(
+                  ( %cid = 'MS1' MilestoneName = 'm' Description = 'd'
+                    SequenceNo = 1 DueDate = '20260615' ) ) ) )
+    ENTITY Milestone
+    CREATE BY \_Task
+    FIELDS ( TaskName Description Priority DueDate Status AssignedTo )
+    WITH VALUE #( ( %cid_ref = 'MS1'
+                    %target  = VALUE #(
+                  ( %cid = 'TASK1' TaskName = 'Done task' Description = 'd'
+                    Priority = zif_ppm_constants=>priority-medium
+                    DueDate = '20260201'
+                    Status = zif_ppm_constants=>task_status-done
+                    AssignedTo = 'TESTER01' )
+                  ( %cid = 'TASK2' TaskName = 'Open task' Description = 'd'
+                    Priority = zif_ppm_constants=>priority-medium
+                    DueDate = '20260201'
+                    Status = zif_ppm_constants=>task_status-open ) ) ) )
+    MAPPED DATA(ls_mapped)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+
+    DATA(lv_project_uuid) = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    FIELDS ( CompletionPercentage )
+    WITH VALUE #( ( ProjectUUID = lv_project_uuid ) )
+    RESULT DATA(lt_projects).
+
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_projects[ 1 ]-CompletionPercentage
+        exp = 50 ).
+
+  ENDMETHOD.
+
+  "=====================================================================
+  " Task -> Milestone: synchronizeMilestoneStatus
+  "=====================================================================
+  METHOD milestone_status_all_open.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status    = zif_ppm_constants=>task_status-open
+      IMPORTING
+        ev_milestone_uuid = DATA(lv_ms_uuid)
+        et_failed         = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone
+    FIELDS ( Status )
+    WITH VALUE #( ( MilestoneUuid = lv_ms_uuid ) )
+    RESULT DATA(lt_milestones).
+
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_milestones[ 1 ]-Status
+        exp = zif_ppm_constants=>milestone_status-new ).
+
+  ENDMETHOD.
+
+  METHOD milestone_status_all_done.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status      = zif_ppm_constants=>task_status-done
+        iv_task_assigned_to = 'TESTER01'
+      IMPORTING
+        ev_milestone_uuid   = DATA(lv_ms_uuid)
+        et_failed           = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone
+    FIELDS ( Status )
+    WITH VALUE #( ( MilestoneUuid = lv_ms_uuid ) )
+    RESULT DATA(lt_milestones).
+
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_milestones[ 1 ]-Status
+        exp = zif_ppm_constants=>milestone_status-completed ).
+
+  ENDMETHOD.
+
+  METHOD milestone_status_mixed.
+
+    " One DONE (assigned) task and one OPEN task under the same
+    " milestone -> milestone must be IN_PROGRESS (not NEW, not
+    " COMPLETED).
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    CREATE FIELDS ( ProjectName Description StartDate EndDate )
+    WITH VALUE #( ( %cid = 'PROJ1' ProjectName = 'p' Description = 'd'
+                    StartDate = '20260101' EndDate = '20261231' ) )
+    ENTITY Project
+    CREATE BY \_Milestone
+    FIELDS ( MilestoneName Description SequenceNo DueDate )
+    WITH VALUE #( ( %cid_ref = 'PROJ1'
+                    %target  = VALUE #(
+                  ( %cid = 'MS1' MilestoneName = 'm' Description = 'd'
+                    SequenceNo = 1 DueDate = '20260615' ) ) ) )
+    ENTITY Milestone
+    CREATE BY \_Task
+    FIELDS ( TaskName Description Priority DueDate Status AssignedTo )
+    WITH VALUE #( ( %cid_ref = 'MS1'
+                    %target  = VALUE #(
+                  ( %cid = 'TASK1' TaskName = 'Done task' Description = 'd'
+                    Priority = zif_ppm_constants=>priority-medium
+                    DueDate = '20260201'
+                    Status = zif_ppm_constants=>task_status-done
+                    AssignedTo = 'TESTER01' )
+                  ( %cid = 'TASK2' TaskName = 'Open task' Description = 'd'
+                    Priority = zif_ppm_constants=>priority-medium
+                    DueDate = '20260201'
+                    Status = zif_ppm_constants=>task_status-open ) ) ) )
+    MAPPED DATA(ls_mapped)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+
+    DATA(lv_ms_uuid) = ls_mapped-milestone[ %cid = 'MS1' ]-MilestoneUuid.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone
+    FIELDS ( Status )
+    WITH VALUE #( ( MilestoneUuid = lv_ms_uuid ) )
+    RESULT DATA(lt_milestones).
+
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_milestones[ 1 ]-Status
+        exp = zif_ppm_constants=>milestone_status-in_progress ).
+
+  ENDMETHOD.
+
+  "=====================================================================
+  " Task actions: startTask / blockTask / unblockTask / completeTask /
+  " reopenTask
+  "=====================================================================
+  METHOD start_task_from_open_ok.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status = zif_ppm_constants=>task_status-open
+      IMPORTING
+        ev_task_uuid   = DATA(lv_task_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    EXECUTE startTask
+    FROM VALUE #( ( %tky-TaskUuid = lv_task_uuid ) )
+    RESULT DATA(lt_result)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_result[ 1 ]-%param-Status
+        exp = zif_ppm_constants=>task_status-in_progress ).
+
+  ENDMETHOD.
+
+  METHOD start_task_from_blocked_fails.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status = zif_ppm_constants=>task_status-blocked
+      IMPORTING
+        ev_task_uuid   = DATA(lv_task_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    EXECUTE startTask
+    FROM VALUE #( ( %tky-TaskUuid = lv_task_uuid ) )
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-task
+        msg = |Only OPEN tasks can be started| ).
+
+  ENDMETHOD.
+
+  METHOD block_task_from_open_ok.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status = zif_ppm_constants=>task_status-open
+      IMPORTING
+        ev_task_uuid   = DATA(lv_task_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    EXECUTE blockTask
+    FROM VALUE #( ( %tky-TaskUuid = lv_task_uuid ) )
+    RESULT DATA(lt_result)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_result[ 1 ]-%param-Status
+        exp = zif_ppm_constants=>task_status-blocked ).
+
+  ENDMETHOD.
+
+  METHOD block_task_from_done_fails.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status      = zif_ppm_constants=>task_status-done
+        iv_task_assigned_to = 'TESTER01'
+      IMPORTING
+        ev_task_uuid        = DATA(lv_task_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    EXECUTE blockTask
+    FROM VALUE #( ( %tky-TaskUuid = lv_task_uuid ) )
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-task
+        msg = |A DONE task cannot be blocked| ).
+
+  ENDMETHOD.
+
+  METHOD unblock_task_from_blocked_ok.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status = zif_ppm_constants=>task_status-blocked
+      IMPORTING
+        ev_task_uuid   = DATA(lv_task_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    EXECUTE unblockTask
+    FROM VALUE #( ( %tky-TaskUuid = lv_task_uuid ) )
+    RESULT DATA(lt_result)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_result[ 1 ]-%param-Status
+        exp = zif_ppm_constants=>task_status-in_progress ).
+
+  ENDMETHOD.
+
+  METHOD unblock_task_from_open_fails.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status = zif_ppm_constants=>task_status-open
+      IMPORTING
+        ev_task_uuid   = DATA(lv_task_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    EXECUTE unblockTask
+    FROM VALUE #( ( %tky-TaskUuid = lv_task_uuid ) )
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-task
+        msg = |Only BLOCKED tasks can be unblocked| ).
+
+  ENDMETHOD.
+
+  METHOD complete_task_from_inprog_ok.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status = zif_ppm_constants=>task_status-in_progress
+      IMPORTING
+        ev_task_uuid   = DATA(lv_task_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    EXECUTE completeTask
+    FROM VALUE #( ( %tky-TaskUuid = lv_task_uuid ) )
+    RESULT DATA(lt_result)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_result[ 1 ]-%param-Status
+        exp = zif_ppm_constants=>task_status-done ).
+
+  ENDMETHOD.
+
+  METHOD complete_task_from_open_fails.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status = zif_ppm_constants=>task_status-open
+      IMPORTING
+        ev_task_uuid   = DATA(lv_task_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    EXECUTE completeTask
+    FROM VALUE #( ( %tky-TaskUuid = lv_task_uuid ) )
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-task
+        msg = |Only IN_PROGRESS tasks can be completed| ).
+
+  ENDMETHOD.
+
+  METHOD reopen_task_from_done_ok.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status      = zif_ppm_constants=>task_status-done
+        iv_task_assigned_to = 'TESTER01'
+      IMPORTING
+        ev_task_uuid        = DATA(lv_task_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    EXECUTE reopenTask
+    FROM VALUE #( ( %tky-TaskUuid = lv_task_uuid ) )
+    RESULT DATA(lt_result)
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_result[ 1 ]-%param-Status
+        exp = zif_ppm_constants=>task_status-in_progress ).
+
+  ENDMETHOD.
+
+  METHOD reopen_task_from_open_fails.
+
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status = zif_ppm_constants=>task_status-open
+      IMPORTING
+        ev_task_uuid   = DATA(lv_task_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task EXECUTE reopenTask
+    FROM VALUE #( ( %tky-TaskUuid = lv_task_uuid ) )
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-task
+        msg = |Only DONE tasks can be reopened| ).
+
+  ENDMETHOD.
+
+
+ENDCLASS.

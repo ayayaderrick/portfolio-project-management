@@ -15,7 +15,7 @@ ENDCLASS.
 
 
 
-CLASS zcl_ppm_demo_data IMPLEMENTATION.
+CLASS ZCL_PPM_DEMO_DATA IMPLEMENTATION.
 
 
   METHOD if_oo_adt_classrun~main.
