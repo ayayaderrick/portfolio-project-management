@@ -926,6 +926,26 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD milestone_status_all_done.
 
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status      = zif_ppm_constants=>task_status-done
+        iv_task_assigned_to = 'TESTER01'
+      IMPORTING
+        ev_milestone_uuid   = DATA(lv_ms_uuid)
+        et_failed           = DATA(lt_failed) ).
+
+    cl_abap_unit_assert=>assert_initial( lt_failed-task ).
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone
+    FIELDS ( Status )
+    WITH VALUE #( ( MilestoneUuid = lv_ms_uuid ) )
+    RESULT DATA(lt_milestones).
+
+    cl_abap_unit_assert=>assert_equals(
+        act = lt_milestones[ 1 ]-Status
+        exp = zif_ppm_constants=>milestone_status-completed ).
+
   ENDMETHOD.
 
   METHOD milestone_status_mixed.
