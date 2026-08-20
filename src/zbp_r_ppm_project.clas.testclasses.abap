@@ -1196,6 +1196,21 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD reopen_task_from_open_fails.
 
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status = zif_ppm_constants=>task_status-open
+      IMPORTING
+        ev_task_uuid   = DATA(lv_task_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task EXECUTE reopenTask
+    FROM VALUE #( ( %tky-TaskUuid = lv_task_uuid ) )
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-task
+        msg = |Only DONE tasks can be reopened| ).
+
   ENDMETHOD.
 
   METHOD task_features_open_status.
