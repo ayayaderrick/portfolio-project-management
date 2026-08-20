@@ -1068,6 +1068,23 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD block_task_from_done_fails.
 
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status      = zif_ppm_constants=>task_status-done
+        iv_task_assigned_to = 'TESTER01'
+      IMPORTING
+        ev_task_uuid        = DATA(lv_task_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    EXECUTE blockTask
+    FROM VALUE #( ( %tky-TaskUuid = lv_task_uuid ) )
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-task
+        msg = |A DONE task cannot be blocked| ).
+
   ENDMETHOD.
 
   METHOD unblock_task_from_blocked_ok.
