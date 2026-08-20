@@ -1026,6 +1026,22 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   METHOD start_task_from_blocked_fails.
 
+    create_full_hierarchy(
+      EXPORTING
+        iv_task_status = zif_ppm_constants=>task_status-blocked
+      IMPORTING
+        ev_task_uuid   = DATA(lv_task_uuid) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Task
+    EXECUTE startTask
+    FROM VALUE #( ( %tky-TaskUuid = lv_task_uuid ) )
+    FAILED DATA(lt_failed).
+
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-task
+        msg = |Only OPEN tasks can be started| ).
+
   ENDMETHOD.
 
   METHOD block_task_from_open_ok.
