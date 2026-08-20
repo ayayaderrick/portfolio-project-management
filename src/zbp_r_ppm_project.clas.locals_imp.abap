@@ -34,8 +34,13 @@ CLASS lhc_task IMPLEMENTATION.
 
   METHOD setTaskId.
 
+    TYPES: BEGIN OF ty_max_task_id,
+             MilestoneUuid TYPE sysuuid_x16,
+             max_task_id   TYPE zppm_task_id,
+           END OF ty_max_task_id.
     DATA lv_max_id TYPE zppm_task_id.
     DATA lt_task_update TYPE TABLE FOR UPDATE zr_ppm_project\\Task.
+    DATA lt_max_task_id TYPE SORTED TABLE OF ty_max_task_id WITH UNIQUE KEY milestoneuuid.
 
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Task
@@ -51,18 +56,44 @@ CLASS lhc_task IMPLEMENTATION.
     SORT lt_milestone_parents BY MilestoneUuid.
     DELETE ADJACENT DUPLICATES FROM lt_milestone_parents COMPARING MilestoneUuid.
 
-    LOOP AT lt_milestone_parents ASSIGNING FIELD-SYMBOL(<fs_milestone_parent>).
-      " Read tasks associated with this specific parent milestone (active + draft)
-      READ ENTITIES OF zr_ppm_project IN LOCAL MODE
-      ENTITY Milestone BY \_Task
-      FIELDS ( TaskId )
-      WITH VALUE #( ( %tky = VALUE #( MilestoneUuid = <fs_milestone_parent>-MilestoneUuid ) ) )
-      RESULT DATA(lt_existing_tasks).
+    "--------------------------------------------------------------------------------------
+    " Read the existing Tasks of every affected Milestone in a SINGLE batch call.
+    " ABAP Cloud / RAP best practice: an EML statement must never sit inside a loop
+    " So all parent Milestones' Tasks are read once here,
+    " and the highest existing TaskId per Milestone is then determined purely in ABAP below.
+    "--------------------------------------------------------------------------------------
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone BY \_Task
+    FIELDS ( MilestoneUuid TaskId )
+    WITH VALUE #( FOR parent IN lt_milestone_parents ( %tky = VALUE #( MilestoneUuid = parent-MilestoneUuid ) ) )
+    RESULT DATA(lt_existing_tasks).
 
-      SORT lt_existing_tasks BY TaskId DESCENDING.
-      lv_max_id = '0000000000'.
-      IF lt_existing_tasks IS NOT INITIAL.
-        lv_max_id = lt_existing_tasks[ 1 ]-TaskId.
+    LOOP AT lt_existing_tasks ASSIGNING FIELD-SYMBOL(<fs_existing_task>).
+      ASSIGN lt_max_task_id[ milestoneuuid = <fs_existing_task>-MilestoneUuid ] TO FIELD-SYMBOL(<fs_max>).
+      IF sy-subrc = 0.
+        IF <fs_existing_task>-TaskId > <fs_max>-max_task_id.
+          <fs_max>-max_task_id = <fs_existing_task>-TaskId.
+        ENDIF.
+      ELSE.
+        INSERT VALUE #(
+            milestoneuuid = <fs_existing_task>-MilestoneUuid
+            max_task_id = <fs_existing_task>-TaskId
+         ) INTO TABLE lt_max_task_id.
+      ENDIF.
+    ENDLOOP.
+
+    "-----------------------------------------------------------------------
+    " Assign sequential numbers per Milestone. This loop is pure ABAP
+    " (table reads/appends only) - the single EML UPDATE call happens
+    " once, after the loop, not inside it.
+    "-----------------------------------------------------------------------
+    LOOP AT lt_milestone_parents ASSIGNING FIELD-SYMBOL(<fs_milestone_parent>).
+      READ TABLE lt_max_task_id ASSIGNING FIELD-SYMBOL(<fs_max_entry>)
+          WITH TABLE KEY milestoneuuid = <fs_milestone_parent>-MilestoneUuid.
+      IF sy-subrc = 0.
+        lv_max_id = <fs_max_entry>-max_task_id.
+      ELSE.
+        lv_max_id = '0000000000'.
       ENDIF.
 
       " Assign numbers sequentially for bulk creation batches
@@ -149,9 +180,8 @@ CLASS lhc_task IMPLEMENTATION.
     ENTITY Task
     FIELDS ( MilestoneUuid AssignedTo Status )
     WITH CORRESPONDING #( keys )
-    RESULT DATA(lt_tasks).
-
-    IF keys IS INITIAL. RETURN. ENDIF.
+    RESULT DATA(lt_tasks)
+    FAILED DATA(lt_failed_read).
 
     " Get Root Project Uuids by reading the parent Milestone entities
     DATA lt_milestone_keys TYPE TABLE FOR READ IMPORT zr_ppm_project\\Milestone.
@@ -421,8 +451,7 @@ CLASS lhc_task IMPLEMENTATION.
     FIELDS ( Status )
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_tasks)
-    FAILED failed
-    REPORTED reported.
+    FAILED failed.
 
     IF lt_tasks IS INITIAL. RETURN. ENDIF.
 
@@ -493,8 +522,7 @@ CLASS lhc_task IMPLEMENTATION.
     FIELDS ( Status )
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_tasks)
-    FAILED failed
-    REPORTED reported.
+    FAILED failed.
 
     IF lt_tasks IS INITIAL. RETURN. ENDIF.
 
@@ -570,8 +598,7 @@ CLASS lhc_task IMPLEMENTATION.
     FIELDS ( Status )
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_tasks)
-    FAILED failed
-    REPORTED reported.
+    FAILED failed.
 
     IF lt_tasks IS INITIAL. RETURN. ENDIF.
 
@@ -642,8 +669,7 @@ CLASS lhc_task IMPLEMENTATION.
     FIELDS ( Status )
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_tasks)
-    FAILED failed
-    REPORTED reported.
+    FAILED failed.
 
     IF lt_tasks IS INITIAL. RETURN. ENDIF.
 
@@ -714,8 +740,7 @@ CLASS lhc_task IMPLEMENTATION.
     FIELDS ( Status )
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_tasks)
-    FAILED failed
-    REPORTED reported.
+    FAILED failed.
 
     IF lt_tasks IS INITIAL. RETURN. ENDIF.
 
@@ -783,8 +808,7 @@ CLASS lhc_task IMPLEMENTATION.
     FIELDS ( Status )
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_tasks)
-    FAILED failed
-    REPORTED reported.
+    FAILED failed.
 
     result = VALUE #( FOR task IN lt_tasks (
         %tky = task-%tky
@@ -835,8 +859,14 @@ CLASS lhc_milestone IMPLEMENTATION.
 
   METHOD setMilestoneId.
 
+    TYPES: BEGIN OF ty_max_milestone_id,
+             ProjectUuid      TYPE sysuuid_x16,
+             max_milestone_id TYPE zppm_milestone_id,
+           END OF ty_max_milestone_id.
+
     DATA lv_max_id TYPE zppm_milestone_id.
     DATA lt_milestone_update TYPE TABLE FOR UPDATE zr_ppm_project\\Milestone.
+    DATA lt_max_milestone_id TYPE SORTED TABLE OF ty_max_milestone_id WITH UNIQUE KEY projectuuid.
 
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Milestone
@@ -852,18 +882,45 @@ CLASS lhc_milestone IMPLEMENTATION.
     SORT lt_parents BY ProjectUuid.
     DELETE ADJACENT DUPLICATES FROM lt_parents COMPARING ProjectUuid.
 
-    LOOP AT lt_parents ASSIGNING FIELD-SYMBOL(<fs_parent>).
-      " Reads both existing saved milestones and un-saved draft rows for this project
-      READ ENTITIES OF zr_ppm_project IN LOCAL MODE
-      ENTITY Project BY \_Milestone
-      FIELDS ( MilestoneId )
-      WITH VALUE #( ( %tky = VALUE #( ProjectUUID = <fs_parent>-ProjectUuid ) ) )
-      RESULT DATA(lt_existing_milestones).
+    "------------------------------------------------------------------------------------------
+    " Read the existing Milestones of every affected Project in a SINGLE batch call.
+    " ABAP Cloud / RAP best practice: an EML statement must never sit inside a loop
+    " so this reads all parent Projects' Milestones at once,
+    " and the highest existing MilestoneId per Project is then determined purely in ABAP below.
+    "------------------------------------------------------------------------------------------
+    " Reads both existing saved milestones and un-saved draft rows for this project
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project BY \_Milestone
+    FIELDS ( ProjectUuid MilestoneId )
+    WITH VALUE #( FOR parent IN lt_parents ( %tky = VALUE #( ProjectUUID = parent-ProjectUuid ) ) )
+    RESULT DATA(lt_existing_milestones).
 
-      SORT lt_existing_milestones BY MilestoneId DESCENDING.
-      lv_max_id = '0000000000'.
-      IF lt_existing_milestones IS NOT INITIAL.
-        lv_max_id = lt_existing_milestones[ 1 ]-MilestoneId.
+    LOOP AT lt_existing_milestones ASSIGNING FIELD-SYMBOL(<fs_existing_milestone>).
+      ASSIGN lt_max_milestone_id[ projectuuid = <fs_existing_milestone>-ProjectUuid ] TO FIELD-SYMBOL(<fs_max>).
+      IF sy-subrc = 0.
+        IF <fs_existing_milestone>-MilestoneId > <fs_max>-max_milestone_id.
+          <fs_max>-max_milestone_id = <fs_existing_milestone>-MilestoneId.
+        ENDIF.
+      ELSE.
+        INSERT VALUE #(
+            ProjectUuid = <fs_existing_milestone>-ProjectUuid
+            max_milestone_id = <fs_existing_milestone>-MilestoneId
+         ) INTO TABLE lt_max_milestone_id.
+      ENDIF.
+    ENDLOOP.
+
+    "-----------------------------------------------------------------------
+    " Assign sequential numbers per Project. This loop is pure ABAP
+    " (table reads/appends only) - the single EML UPDATE call happens
+    " once, after the loop, not inside it.
+    "-----------------------------------------------------------------------
+    LOOP AT lt_parents ASSIGNING FIELD-SYMBOL(<fs_parent>).
+      READ TABLE lt_max_milestone_id ASSIGNING FIELD-SYMBOL(<fs_max_entry>)
+          WITH TABLE KEY projectuuid = <fs_parent>-ProjectUuid.
+      IF sy-subrc = 0.
+        lv_max_id = <fs_max_entry>-max_milestone_id.
+      ELSE.
+        lv_max_id = '0000000000'.
       ENDIF.
 
       " Assign numbers sequentially for bulk creation batches

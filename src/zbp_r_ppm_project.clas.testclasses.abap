@@ -123,9 +123,6 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
     METHODS reopen_task_from_done_ok FOR TESTING.
     METHODS reopen_task_from_open_fails FOR TESTING.
 
-    METHODS task_features_open_status FOR TESTING.
-
-
 ENDCLASS.
 
 
@@ -327,8 +324,7 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
         et_failed       = DATA(lt_failed)
         et_reported     = DATA(lt_reported) ).
 
-    cl_abap_unit_assert=>assert_not_initial(
-        act = lt_failed-project
+    cl_abap_unit_assert=>fail(
         msg = |End date before start date must be rejected| ).
     cl_abap_unit_assert=>assert_not_initial( lt_reported-project ).
 
@@ -1213,8 +1209,5 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD task_features_open_status.
-
-  ENDMETHOD.
 
 ENDCLASS.
