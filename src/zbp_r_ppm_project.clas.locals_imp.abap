@@ -237,11 +237,23 @@ CLASS lhc_task IMPLEMENTATION.
 
   METHOD calculateProjectCompletion.
 
-    DATA: lt_project_update TYPE TABLE FOR UPDATE zr_ppm_project,
-          lv_total_tasks    TYPE i,
-          lv_done_tasks     TYPE i,
-          lv_percentage     TYPE zppm_percentage,
-          lv_percentage_df  TYPE decfloat34.
+    TYPES: BEGIN OF ty_milestone_project,
+             MilestoneUuid TYPE sysuuid_x16,
+             is_draft      TYPE abp_behv_flag,
+             ProjectUuid   TYPE sysuuid_x16,
+           END OF ty_milestone_project.
+    TYPES: BEGIN OF ty_project_stats,
+             ProjectUUID TYPE sysuuid_x16,
+             is_draft    TYPE abp_behv_flag,
+             total_tasks TYPE i,
+             done_tasks  TYPE i,
+           END OF ty_project_stats.
+
+    DATA: lt_project_update    TYPE TABLE FOR UPDATE zr_ppm_project,
+          lt_milestone_project TYPE SORTED TABLE OF ty_milestone_project WITH UNIQUE KEY MilestoneUuid is_draft,
+          lt_project_stats     TYPE SORTED TABLE OF ty_project_stats WITH UNIQUE KEY ProjectUUID is_draft,
+          lv_percentage        TYPE zppm_percentage,
+          lv_percentage_df     TYPE decfloat34.
 
     "-----------------------------------------------------------------------
     " Read modified tasks
@@ -284,35 +296,64 @@ CLASS lhc_task IMPLEMENTATION.
     SORT lt_project_keys BY ProjectUUID %is_draft.
     DELETE ADJACENT DUPLICATES FROM lt_project_keys COMPARING ProjectUUID %is_draft.
 
+    "---------------------------------------------------------------
+    " Bulk Read complete Project hierarchy
+    "---------------------------------------------------------------
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project BY \_Milestone
+    ALL FIELDS
+    WITH CORRESPONDING #( lt_project_keys )
+    LINK DATA(lt_project_milestone_links)
+    RESULT DATA(lt_all_milestones).
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone BY \_Task
+    FIELDS ( Status )
+    WITH CORRESPONDING #( lt_all_milestones )
+    LINK DATA(lt_milestone_task_links)
+    RESULT DATA(lt_all_tasks).
+
+    "-----------------------------------------------------------------------
+    " Aggregate total/done Task counts per Project (pure ABAP, no EML)
+    "-----------------------------------------------------------------------
+    lt_milestone_project = VALUE #( FOR milestone IN lt_all_milestones
+                                     ( MilestoneUuid = milestone-MilestoneUuid
+                                       is_draft       = milestone-%is_draft
+                                       ProjectUuid    = milestone-ProjectUuid ) ).
+
+    lt_project_stats = VALUE #( FOR project_key IN lt_project_keys
+                                 ( ProjectUUID = project_key-ProjectUUID
+                                   is_draft    = project_key-%is_draft ) ).
+
+    LOOP AT lt_all_tasks ASSIGNING FIELD-SYMBOL(<fs_task>).
+      ASSIGN lt_milestone_project[ MilestoneUuid = <fs_task>-MilestoneUuid
+                                    is_draft       = <fs_task>-%is_draft ] TO FIELD-SYMBOL(<fs_ms_proj>).
+      IF sy-subrc <> 0. CONTINUE. ENDIF.
+
+      ASSIGN lt_project_stats[ ProjectUUID = <fs_ms_proj>-ProjectUuid
+                                is_draft    = <fs_ms_proj>-is_draft ] TO FIELD-SYMBOL(<fs_stats>).
+      IF sy-subrc <> 0. CONTINUE. ENDIF.
+
+      <fs_stats>-total_tasks += 1.
+      IF <fs_task>-Status = zif_ppm_constants=>task_status-done.
+        <fs_stats>-done_tasks += 1.
+      ENDIF.
+    ENDLOOP.
+
+    "-----------------------------------------------------------------------
+    " Build the update table. This loop is pure ABAP (table reads/appends only)
+    " the single EML UPDATE call happens once, after the loop, not inside it.
+    "-----------------------------------------------------------------------
     LOOP AT lt_project_keys ASSIGNING FIELD-SYMBOL(<fs_proj_key>).
-      CLEAR: lv_total_tasks, lv_done_tasks, lv_percentage, lv_percentage_df.
+      CLEAR:  lv_percentage, lv_percentage_df.
 
-      "---------------------------------------------------------------
-      " Read complete Project hierarchy
-      "---------------------------------------------------------------
-      READ ENTITIES OF zr_ppm_project IN LOCAL MODE
-      ENTITY Project BY \_Milestone
-      ALL FIELDS
-      WITH CORRESPONDING #( lt_project_keys )
-      LINK DATA(lt_project_milestone_links)
-      RESULT DATA(lt_all_milestones).
+      READ TABLE lt_project_stats ASSIGNING FIELD-SYMBOL(<fs_stats2>)
+           WITH TABLE KEY ProjectUUID = <fs_proj_key>-ProjectUUID
+                           is_draft    = <fs_proj_key>-%is_draft.
 
-      READ ENTITIES OF zr_ppm_project IN LOCAL MODE
-      ENTITY Milestone BY \_Task
-      FIELDS ( Status )
-      WITH CORRESPONDING #( lt_all_milestones )
-      LINK DATA(lt_milestone_task_links)
-      RESULT DATA(lt_all_tasks).
-
-
-      lv_total_tasks = lines( lt_all_tasks ).
-
-      IF lv_total_tasks > 0.
-        lv_done_tasks = REDUCE i( INIT count = 0
-                            FOR task IN lt_all_tasks
-                            WHERE ( Status = zif_ppm_constants=>task_status-done )
-                            NEXT count = count + 1 ).
-        lv_percentage_df = ( CONV decfloat34( lv_done_tasks ) * 100 ) / CONV decfloat34( lv_total_tasks ).
+      IF sy-subrc = 0 AND <fs_stats2>-total_tasks > 0.
+        lv_percentage_df = ( CONV decfloat34( <fs_stats2>-done_tasks ) * 100 )
+                             / CONV decfloat34( <fs_stats2>-total_tasks ).
         lv_percentage = CONV zppm_percentage( lv_percentage_df ).
       ELSE.
         lv_percentage = 0.
