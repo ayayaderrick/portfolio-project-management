@@ -382,16 +382,22 @@ CLASS lhc_task IMPLEMENTATION.
 
   METHOD synchronizeMilestoneStatus.
 
+    TYPES: BEGIN OF ty_milestone_stats,
+             MilestoneUuid    TYPE sysuuid_x16,
+             is_draft         TYPE abp_behv_flag,
+             total_tasks      TYPE i,
+             open_tasks       TYPE i,
+             inprogress_tasks TYPE i,
+             done_tasks       TYPE i,
+           END OF ty_milestone_stats.
+
     DATA: lt_milestone_update TYPE TABLE FOR UPDATE zr_ppm_project\\Milestone,
-          lv_total_tasks      TYPE i,
-          lv_open_tasks       TYPE i,
-          lv_inprogress_tasks TYPE i,
-          lv_done_tasks       TYPE i,
+          lt_milestone_stats  TYPE SORTED TABLE OF ty_milestone_stats WITH UNIQUE KEY MilestoneUuid is_draft,
           lv_new_status       TYPE zppm_task_status.
 
-*-----------------------------------------------------------------------
-* Read changed Tasks
-*-----------------------------------------------------------------------
+    "--------------------------------------------------------------------
+    "Read changed Tasks
+    "--------------------------------------------------------------------
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Task
     FIELDS ( MilestoneUuid )
@@ -400,9 +406,9 @@ CLASS lhc_task IMPLEMENTATION.
 
     IF lt_tasks IS INITIAL. RETURN. ENDIF.
 
-*-----------------------------------------------------------------------
-* Build unique Milestone keys
-*-----------------------------------------------------------------------
+    "--------------------------------------------------------------------
+    "Build unique Milestone keys
+    "--------------------------------------------------------------------
     DATA lt_milestone_keys TYPE TABLE FOR READ IMPORT zr_ppm_project\\Milestone.
 
     lt_milestone_keys = VALUE #( FOR task IN lt_tasks ( %key-MilestoneUuid = task-MilestoneUuid
@@ -412,46 +418,54 @@ CLASS lhc_task IMPLEMENTATION.
     DELETE ADJACENT DUPLICATES FROM lt_milestone_keys COMPARING MilestoneUuid %is_draft.
 
     "-----------------------------------------------------------------------
-    " Process each affected Milestone
+    " Bulk Read Milestone and all child Tasks
+    "-----------------------------------------------------------------------
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Milestone BY \_Task
+    FIELDS ( MilestoneUuid Status )
+    WITH CORRESPONDING #( lt_milestone_keys )
+    LINK DATA(lt_task_links)
+    RESULT DATA(lt_all_tasks).
+
+    "-----------------------------------------------------------------------
+    " Aggregate counts per Milestone
+    "-----------------------------------------------------------------------
+    " Seed one stats row per Milestone, so Milestones with zero Tasks still get updated (to NEW).
+    lt_milestone_stats = VALUE #( FOR milestone_key IN lt_milestone_keys
+                                   ( MilestoneUuid = milestone_key-MilestoneUuid
+                                     is_draft       = milestone_key-%is_draft ) ).
+
+    LOOP AT lt_all_tasks ASSIGNING FIELD-SYMBOL(<fs_task>).
+      ASSIGN lt_milestone_stats[ MilestoneUuid = <fs_task>-MilestoneUuid
+                                  is_draft       = <fs_task>-%is_draft ] TO FIELD-SYMBOL(<fs_stats>).
+      IF sy-subrc <> 0. CONTINUE. ENDIF.
+
+      <fs_stats>-total_tasks += 1.
+      CASE <fs_task>-Status.
+        WHEN zif_ppm_constants=>task_status-open.
+          <fs_stats>-open_tasks += 1.
+        WHEN zif_ppm_constants=>task_status-done.
+          <fs_stats>-done_tasks += 1.
+        WHEN OTHERS.
+          <fs_stats>-inprogress_tasks += 1.
+      ENDCASE.
+    ENDLOOP.
+
+    "-----------------------------------------------------------------------
+    " Determine each Milestone's Status and build the update table.
     "-----------------------------------------------------------------------
     LOOP AT lt_milestone_keys ASSIGNING FIELD-SYMBOL(<fs_milestone_key>).
-      CLEAR: lv_total_tasks, lv_open_tasks, lv_inprogress_tasks, lv_done_tasks, lv_new_status.
+      CLEAR: lv_new_status.
 
-      "-----------------------------------------------------------------------
-      " Read Milestone and all child Tasks
-      "-----------------------------------------------------------------------
+      READ TABLE lt_milestone_stats ASSIGNING FIELD-SYMBOL(<fs_ms_stats>)
+           WITH TABLE KEY MilestoneUuid = <fs_milestone_key>-MilestoneUuid
+                           is_draft       = <fs_milestone_key>-%is_draft.
 
-      READ ENTITIES OF zr_ppm_project IN LOCAL MODE
-      ENTITY Milestone BY \_Task
-      FIELDS ( Status )
-      WITH CORRESPONDING #( lt_milestone_keys )
-      LINK DATA(lt_task_links)
-      RESULT DATA(lt_all_tasks).
-
-      "-----------------------------------------------------------------------
-      " Count Task Statuses
-      "-----------------------------------------------------------------------
-      lv_total_tasks = lines( lt_all_tasks ).
-
-      LOOP AT lt_all_tasks ASSIGNING FIELD-SYMBOL(<fs_task>).
-        CASE <fs_task>-Status.
-          WHEN zif_ppm_constants=>task_status-open.
-            lv_open_tasks += 1.
-          WHEN zif_ppm_constants=>task_status-done.
-            lv_done_tasks += 1.
-          WHEN OTHERS.
-            lv_inprogress_tasks += 1.
-        ENDCASE.
-      ENDLOOP.
-
-      "-----------------------------------------------------------------------
-      " Determine Milestone Status
-      "-----------------------------------------------------------------------
-      IF lv_total_tasks = 0.
+      IF sy-subrc <> 0 OR <fs_ms_stats>-total_tasks = 0.
         lv_new_status = zif_ppm_constants=>milestone_status-new.
-      ELSEIF lv_done_tasks = lv_total_tasks.
+      ELSEIF <fs_ms_stats>-done_tasks = <fs_ms_stats>-total_tasks.
         lv_new_status = zif_ppm_constants=>milestone_status-completed.
-      ELSEIF lv_open_tasks = lv_total_tasks.
+      ELSEIF <fs_ms_stats>-open_tasks = <fs_ms_stats>-total_tasks.
         lv_new_status = zif_ppm_constants=>milestone_status-new.
       ELSE.
         " Any mixture (including BLOCKED or IN_PROGRESS)
