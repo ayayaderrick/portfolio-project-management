@@ -74,13 +74,11 @@ annotate view ZC_PPM_PROJECT with
 
   @UI.identification: [ { position: 40 } ]
   @UI.lineItem: [ { position: 30 } ]
-  @UI.selectionField: [ { position: 30 } ]
   @UI.fieldGroup: [{ qualifier: 'Schedule', position: 10 }]
   StartDate;
 
   @UI.identification: [ { position: 50 } ]
   @UI.lineItem: [ { position: 40 } ]
-  @UI.selectionField: [ { position: 40 } ]
   @UI.fieldGroup: [{ qualifier: 'Schedule', position: 20 }]
   EndDate;
 
