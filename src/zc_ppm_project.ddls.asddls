@@ -15,8 +15,10 @@ define root view entity ZC_PPM_PROJECT
 {
   key ProjectUUID,
       @Search.defaultSearchElement: true
+      @Search.fuzzinessThreshold: 0.7
       ProjectID,
       @Search.defaultSearchElement: true
+      @Search.fuzzinessThreshold: 0.7
       ProjectName,
       Description,
       StartDate,
