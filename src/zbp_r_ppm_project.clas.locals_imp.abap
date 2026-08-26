@@ -1094,7 +1094,7 @@ CLASS lhc_milestone IMPLEMENTATION.
       " Count how many milestones in the same project share this sequence number
       DATA(lv_match_count) = REDUCE i(
          INIT count = 0
-         FOR m IN lt_all_milestones
+         FOR m IN lt_all_milestones USING KEY id
          WHERE ( ProjectUuid = <fs_milestone>-ProjectUuid AND
                  SequenceNo = <fs_milestone>-SequenceNo AND
                  %is_draft = <fs_milestone>-%is_draft )
