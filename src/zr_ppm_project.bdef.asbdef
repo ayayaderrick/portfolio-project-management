@@ -22,6 +22,8 @@ authorization master ( global )
   ProjectName, Description, StartDate, EndDate;
 
   determination setProjectId on modify { create; }
+  determination setInitialProjectStatus on modify { create; }
+
   validation validateProjectDates on save { create; update; }
 
   action ( features : instance ) startProject result [1] $self;
