@@ -149,7 +149,7 @@ CLASS lhc_task IMPLEMENTATION.
        ) TO reported-task.
 
       " Read corresponding milestone safely
-      ASSIGN lt_milestones[ MilestoneUuid = <fs_task>-MilestoneUuid
+      ASSIGN lt_milestones[ KEY id MilestoneUuid = <fs_task>-MilestoneUuid
                             %is_draft = <fs_task>-%is_draft ] TO FIELD-SYMBOL(<fs_milestone>).
 
       IF sy-subrc <> 0. CONTINUE. ENDIF.
@@ -207,7 +207,7 @@ CLASS lhc_task IMPLEMENTATION.
       IF <fs_task>-Status IS INITIAL. CONTINUE. ENDIF.
 
       " Read corresponding milestone safely
-      ASSIGN lt_milestones[ MilestoneUuid = <fs_task>-MilestoneUuid
+      ASSIGN lt_milestones[ KEY id MilestoneUuid = <fs_task>-MilestoneUuid
                             %is_draft = <fs_task>-%is_draft ] TO FIELD-SYMBOL(<fs_milestone>).
 
       IF sy-subrc <> 0. CONTINUE. ENDIF.
@@ -1026,7 +1026,7 @@ CLASS lhc_milestone IMPLEMENTATION.
           %state_area = zif_ppm_state_area=>state_area-milestone_due_date
        ) TO reported-milestone.
 
-      ASSIGN lt_projects[ ProjectUuid = <fs_milestone>-ProjectUuid
+      ASSIGN lt_projects[ KEY id ProjectUuid = <fs_milestone>-ProjectUuid
                           %is_draft = <fs_milestone>-%is_draft ] TO FIELD-SYMBOL(<fs_project>).
 
       IF sy-subrc <> 0. RETURN. ENDIF.
@@ -1402,7 +1402,6 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
     FIELDS ( Status )
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_projects)
-    REPORTED reported
     FAILED failed.
 
     IF lt_projects IS INITIAL. RETURN. ENDIF.
@@ -1480,7 +1479,6 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
     FIELDS ( Status )
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_projects)
-    REPORTED reported
     FAILED failed.
 
     IF lt_projects IS INITIAL. RETURN. ENDIF.
@@ -1560,7 +1558,6 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
     FIELDS ( Status )
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_projects)
-    REPORTED reported
     FAILED failed.
 
     IF lt_projects IS INITIAL. RETURN. ENDIF.
@@ -1637,7 +1634,6 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
     FIELDS ( Status )
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_projects)
-    REPORTED reported
     FAILED failed.
 
     IF lt_projects IS INITIAL. RETURN. ENDIF.
@@ -1717,7 +1713,6 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
     FIELDS ( Status )
     WITH CORRESPONDING #( keys )
     RESULT DATA(lt_projects)
-    REPORTED reported
     FAILED failed.
 
     result = VALUE #( FOR project IN lt_projects (
