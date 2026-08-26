@@ -1266,7 +1266,9 @@ CLASS lhc_zr_ppm_project DEFINITION INHERITING FROM cl_abap_behavior_handler.
       resumeProject FOR MODIFY
         IMPORTING keys FOR ACTION Project~resumeProject RESULT result,
       cancelProject FOR MODIFY
-        IMPORTING keys FOR ACTION Project~cancelProject RESULT result.
+        IMPORTING keys FOR ACTION Project~cancelProject RESULT result,
+      setInitialProjectStatus FOR DETERMINE ON MODIFY
+       keys FOR Project~setInitialProjectStatus.
 ENDCLASS.
 
 CLASS lhc_zr_ppm_project IMPLEMENTATION.
@@ -1327,6 +1329,34 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD setInitialProjectStatus.
+
+    DATA lt_update TYPE TABLE FOR UPDATE zr_ppm_project.
+
+    READ ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    FIELDS ( Status )
+    WITH CORRESPONDING #( keys )
+    RESULT DATA(lt_projects).
+
+    " Ensure Status is not set yet (idempotent) - must be checked when BO is draft-enabled
+    DELETE lt_projects WHERE Status IS NOT INITIAL.
+    IF lt_projects IS INITIAL. RETURN. ENDIF.
+
+    lt_update = VALUE #( FOR project IN lt_projects (
+        %tky = project-%tky
+        Status = zif_ppm_constants=>project_status-new
+        %control-Status = if_abap_behv=>mk-on
+     ) ).
+
+    MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
+    ENTITY Project
+    UPDATE
+    FIELDS ( Status )
+    WITH lt_update.
+
+  ENDMETHOD.
+
   METHOD validateProjectDates.
 
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
@@ -1379,7 +1409,6 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
 
     "---------------------------------------------------------------------
     " Validate the requested status transition
-    "
     " NEW -> IN_PROGRESS is the only valid transition for this action.
     " ON_HOLD and CANCELLED are deliberately handled by their own
     " actions later.
@@ -1614,8 +1643,7 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
     IF lt_projects IS INITIAL. RETURN. ENDIF.
 
     "---------------------------------------------------------------------
-    " Validate status transition
-    "
+    " Validate status transition "
     " NEW         -> CANCELLED  allowed
     " IN_PROGRESS -> CANCELLED  allowed
     " ON_HOLD     -> CANCELLED  allowed
@@ -1712,9 +1740,6 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
      ) ).
 
   ENDMETHOD.
-
-
-
 
 
 
