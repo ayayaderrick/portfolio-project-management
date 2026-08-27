@@ -1664,7 +1664,7 @@ CLASS lhc_zr_ppm_project IMPLEMENTATION.
     "---------------------------------------------------------------------
     " Remove projects that failed validation
     "---------------------------------------------------------------------
-    DELETE lt_projects WHERE Status <> zif_ppm_constants=>project_status-on_hold
+    DELETE lt_projects WHERE Status <> zif_ppm_constants=>project_status-new
       AND Status <> zif_ppm_constants=>project_status-in_progress
       AND Status <> zif_ppm_constants=>project_status-on_hold.
 

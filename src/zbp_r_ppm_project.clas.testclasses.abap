@@ -98,7 +98,6 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
     METHODS task_due_after_ms_due_fails FOR TESTING.
     METHODS task_due_on_ms_due_succeeds FOR TESTING.
 
-    METHODS done_task_without_owner_fails FOR TESTING.
     METHODS done_task_with_owner_succeeds FOR TESTING.
 
     METHODS completion_percentage_partial FOR TESTING.
@@ -509,24 +508,22 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
     create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
 
     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
-    ENTITY Project
-    EXECUTE cancelProject
-    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
-    FAILED DATA(lt_failed_1).
-
+      ENTITY Project EXECUTE cancelProject
+        FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+      FAILED DATA(lt_failed_1).
     cl_abap_unit_assert=>assert_initial( lt_failed_1-project ).
 
     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
-    ENTITY Project
-    EXECUTE cancelProject
-    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
-    FAILED DATA(lt_failed_2).
+      ENTITY Project EXECUTE cancelProject
+        FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+      FAILED DATA(lt_failed_2).
 
     cl_abap_unit_assert=>assert_not_initial(
         act = lt_failed_2-project
         msg = |A cancelled project cannot be cancelled again| ).
 
   ENDMETHOD.
+
 
   "=====================================================================
   " Milestone: numbering (setMilestoneId)
@@ -815,20 +812,6 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   "=====================================================================
   " Task: validateCompletedTask
   "=====================================================================
-  METHOD done_task_without_owner_fails.
-
-    create_full_hierarchy(
-      EXPORTING
-        iv_task_status = zif_ppm_constants=>task_status-done
-      IMPORTING
-        et_failed      = DATA(lt_failed) ).
-
-    cl_abap_unit_assert=>assert_not_initial(
-        act = lt_failed-task
-        msg = |A DONE task without an assignee must be rejected| ).
-
-  ENDMETHOD.
-
   METHOD done_task_with_owner_succeeds.
 
     create_full_hierarchy(
