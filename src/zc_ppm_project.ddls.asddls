@@ -15,8 +15,16 @@ define root view entity ZC_PPM_PROJECT
 {
   key ProjectUUID,
       @Search.defaultSearchElement: true
+      @Search.fuzzinessThreshold: 0.7
+      @Consumption.valueHelpDefinition: [{
+        entity: { name: 'ZI_PPM_PROJECT_VH', element: 'ProjectID' }
+      }]
       ProjectID,
       @Search.defaultSearchElement: true
+      @Search.fuzzinessThreshold: 0.7
+      @Consumption.valueHelpDefinition: [{
+        entity: { name: 'ZI_PPM_PROJECT_VH', element: 'ProjectName' }
+      }]
       ProjectName,
       Description,
       StartDate,

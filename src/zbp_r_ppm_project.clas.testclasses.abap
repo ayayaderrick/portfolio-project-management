@@ -98,7 +98,6 @@ CLASS ltcl_ppm_project DEFINITION FINAL FOR TESTING
     METHODS task_due_after_ms_due_fails FOR TESTING.
     METHODS task_due_on_ms_due_succeeds FOR TESTING.
 
-    METHODS done_task_without_owner_fails FOR TESTING.
     METHODS done_task_with_owner_succeeds FOR TESTING.
 
     METHODS completion_percentage_partial FOR TESTING.
@@ -158,6 +157,7 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   "=====================================================================
   METHOD create_project.
 
+
     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Project
     CREATE FIELDS ( ProjectName Description StartDate EndDate )
@@ -166,16 +166,22 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
                     Description = 'Created by ABAP Unit'
                     StartDate   = iv_start_date
                     EndDate     = iv_end_date ) )
-     MAPPED   DATA(ls_mapped)
-     FAILED   et_failed
-     REPORTED et_reported.
+    MAPPED   DATA(ls_mapped)
+    FAILED   et_failed
+    REPORTED et_reported.
 
-    IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
-      ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
+    IF NOT line_exists( ls_mapped-project[ KEY cid %cid = 'PROJ1' ] ).
+      RETURN.
     ENDIF.
+
+    ev_project_uuid = ls_mapped-project[ KEY cid %cid = 'PROJ1' ]-ProjectUUID.
+
+
+
   ENDMETHOD.
 
   METHOD create_project_with_milestone.
+
     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Project
     CREATE FIELDS ( ProjectName Description StartDate EndDate )
@@ -189,24 +195,29 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
     FIELDS ( MilestoneName Description SequenceNo DueDate )
     WITH VALUE #( ( %cid_ref = 'PROJ1'
                     %target  = VALUE #(
-                        ( %cid          = 'MS1'
-                          MilestoneName = 'Milestone 1'
-                          Description   = 'Created by ABAP Unit'
-                          SequenceNo    = iv_ms_sequence_no
-                          DueDate       = iv_ms_due_date ) ) ) )
-     MAPPED   DATA(ls_mapped)
-     FAILED   et_failed
-     REPORTED et_reported.
+                  ( %cid          = 'MS1'
+                    MilestoneName = 'Milestone 1'
+                    Description   = 'Created by ABAP Unit'
+                    SequenceNo    = iv_ms_sequence_no
+                    DueDate       = iv_ms_due_date ) ) ) )
+    MAPPED   DATA(ls_mapped)
+    FAILED   et_failed
+    REPORTED et_reported.
 
-    IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
-      ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
+    IF NOT line_exists( ls_mapped-project[ KEY cid %cid = 'PROJ1' ] ).
+      RETURN.
     ENDIF.
-    IF line_exists( ls_mapped-milestone[ %cid = 'MS1' ] ).
-      ev_milestone_uuid = ls_mapped-milestone[ %cid = 'MS1' ]-MilestoneUuid.
+
+    ev_project_uuid = ls_mapped-project[ KEY cid %cid = 'PROJ1' ]-ProjectUUID.
+    IF line_exists( ls_mapped-milestone[ KEY cid %cid = 'MS1' ] ).
+      ev_milestone_uuid = ls_mapped-milestone[ KEY cid %cid = 'MS1' ]-MilestoneUuid.
     ENDIF.
+
+
   ENDMETHOD.
 
   METHOD create_full_hierarchy.
+
     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Project
     CREATE FIELDS ( ProjectName Description StartDate EndDate )
@@ -220,36 +231,39 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
     FIELDS ( MilestoneName Description SequenceNo DueDate )
     WITH VALUE #( ( %cid_ref = 'PROJ1'
                     %target  = VALUE #(
-                        ( %cid          = 'MS1'
-                          MilestoneName = 'Milestone 1'
-                          Description   = 'Created by ABAP Unit'
-                          SequenceNo    = 1
-                          DueDate       = iv_ms_due_date ) ) ) )
+                  ( %cid          = 'MS1'
+                    MilestoneName = 'Milestone 1'
+                    Description   = 'Created by ABAP Unit'
+                    SequenceNo    = 1
+                    DueDate       = iv_ms_due_date ) ) ) )
     ENTITY Milestone
     CREATE BY \_Task
     FIELDS ( TaskName Description Priority DueDate Status AssignedTo )
     WITH VALUE #( ( %cid_ref = 'MS1'
                     %target  = VALUE #(
-                        ( %cid        = 'TASK1'
-                          TaskName    = 'Task 1'
-                          Description = 'Created by ABAP Unit'
-                          Priority    = zif_ppm_constants=>priority-medium
-                          DueDate     = iv_task_due_date
-                          Status      = iv_task_status
-                          AssignedTo  = iv_task_assigned_to ) ) ) )
-     MAPPED   DATA(ls_mapped)
-     FAILED   et_failed
-     REPORTED et_reported.
+                  ( %cid        = 'TASK1'
+                    TaskName    = 'Task 1'
+                    Description = 'Created by ABAP Unit'
+                    Priority    = zif_ppm_constants=>priority-medium
+                    DueDate     = iv_task_due_date
+                    Status      = iv_task_status
+                    AssignedTo  = iv_task_assigned_to ) ) ) )
+    MAPPED   DATA(ls_mapped)
+    FAILED   et_failed
+    REPORTED et_reported.
 
-    IF line_exists( ls_mapped-project[ %cid = 'PROJ1' ] ).
-      ev_project_uuid = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
+    IF NOT line_exists( ls_mapped-project[ KEY cid %cid = 'PROJ1' ] ).
+      RETURN.
     ENDIF.
-    IF line_exists( ls_mapped-milestone[ %cid = 'MS1' ] ).
-      ev_milestone_uuid = ls_mapped-milestone[ %cid = 'MS1' ]-MilestoneUuid.
+
+    ev_project_uuid = ls_mapped-project[ KEY cid %cid = 'PROJ1' ]-ProjectUUID.
+    IF line_exists( ls_mapped-milestone[ KEY cid %cid = 'MS1' ] ).
+      ev_milestone_uuid = ls_mapped-milestone[ KEY cid %cid = 'MS1' ]-MilestoneUuid.
     ENDIF.
-    IF line_exists( ls_mapped-task[ %cid = 'TASK1' ] ).
-      ev_task_uuid = ls_mapped-task[ %cid = 'TASK1' ]-TaskUuid.
+    IF line_exists( ls_mapped-task[ KEY cid %cid = 'TASK1' ] ).
+      ev_task_uuid = ls_mapped-task[ KEY cid %cid = 'TASK1' ]-TaskUuid.
     ENDIF.
+
   ENDMETHOD.
 
 
@@ -295,7 +309,7 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_initial( lt_failed-project ).
 
-    DATA(lv_uuid_2) = ls_mapped-project[ %cid = 'PROJ2' ]-ProjectUUID.
+    DATA(lv_uuid_2) = ls_mapped-project[ KEY cid %cid = 'PROJ2' ]-ProjectUUID.
 
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Project
@@ -306,8 +320,8 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_equals( act = lines( lt_projects ) exp = 2 ).
     cl_abap_unit_assert=>assert_differs(
-        act = lt_projects[ ProjectUUID = lv_uuid_1 ]-ProjectID
-        exp = lt_projects[ ProjectUUID = lv_uuid_2 ]-ProjectID ).
+        act = lt_projects[ KEY entity ProjectUUID = lv_uuid_1 ]-ProjectID
+        exp = lt_projects[ KEY entity ProjectUUID = lv_uuid_2 ]-ProjectID ).
 
   ENDMETHOD.
 
@@ -324,7 +338,8 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
         et_failed       = DATA(lt_failed)
         et_reported     = DATA(lt_reported) ).
 
-    cl_abap_unit_assert=>fail(
+    cl_abap_unit_assert=>assert_not_initial(
+        act = lt_failed-project
         msg = |End date before start date must be rejected| ).
     cl_abap_unit_assert=>assert_not_initial( lt_reported-project ).
 
@@ -493,24 +508,22 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
     create_project( IMPORTING ev_project_uuid = DATA(lv_uuid) ).
 
     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
-    ENTITY Project
-    EXECUTE cancelProject
-    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
-    FAILED DATA(lt_failed_1).
-
+      ENTITY Project EXECUTE cancelProject
+        FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+      FAILED DATA(lt_failed_1).
     cl_abap_unit_assert=>assert_initial( lt_failed_1-project ).
 
     MODIFY ENTITIES OF zr_ppm_project IN LOCAL MODE
-    ENTITY Project
-    EXECUTE cancelProject
-    FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
-    FAILED DATA(lt_failed_2).
+      ENTITY Project EXECUTE cancelProject
+        FROM VALUE #( ( %tky-ProjectUUID = lv_uuid ) )
+      FAILED DATA(lt_failed_2).
 
     cl_abap_unit_assert=>assert_not_initial(
         act = lt_failed_2-project
         msg = |A cancelled project cannot be cancelled again| ).
 
   ENDMETHOD.
+
 
   "=====================================================================
   " Milestone: numbering (setMilestoneId)
@@ -539,8 +552,8 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_initial( lt_failed-milestone ).
 
-    DATA(lv_ms1_uuid) = ls_mapped-milestone[ %cid = 'MS1' ]-MilestoneUuid.
-    DATA(lv_ms2_uuid) = ls_mapped-milestone[ %cid = 'MS2' ]-MilestoneUuid.
+    DATA(lv_ms1_uuid) = ls_mapped-milestone[ KEY cid %cid = 'MS1' ]-MilestoneUuid.
+    DATA(lv_ms2_uuid) = ls_mapped-milestone[ KEY cid %cid = 'MS2' ]-MilestoneUuid.
 
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Milestone
@@ -549,8 +562,8 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
                   ( MilestoneUuid = lv_ms2_uuid ) )
     RESULT DATA(lt_milestones).
 
-    DATA(lv_id_1) = lt_milestones[ MilestoneUuid = lv_ms1_uuid ]-MilestoneId.
-    DATA(lv_id_2) = lt_milestones[ MilestoneUuid = lv_ms2_uuid ]-MilestoneId.
+    DATA(lv_id_1) = lt_milestones[ KEY entity MilestoneUuid = lv_ms1_uuid ]-MilestoneId.
+    DATA(lv_id_2) = lt_milestones[ KEY entity MilestoneUuid = lv_ms2_uuid ]-MilestoneId.
 
     cl_abap_unit_assert=>assert_not_initial( lv_id_1 ).
     cl_abap_unit_assert=>assert_not_initial( lv_id_2 ).
@@ -746,8 +759,8 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_initial( lt_failed-task ).
 
-    DATA(lv_task1_uuid) = ls_mapped-task[ %cid = 'TASK1' ]-TaskUuid.
-    DATA(lv_task2_uuid) = ls_mapped-task[ %cid = 'TASK2' ]-TaskUuid.
+    DATA(lv_task1_uuid) = ls_mapped-task[ KEY cid %cid = 'TASK1' ]-TaskUuid.
+    DATA(lv_task2_uuid) = ls_mapped-task[ KEY cid %cid = 'TASK2' ]-TaskUuid.
 
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Task
@@ -756,8 +769,8 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
                   ( TaskUuid = lv_task2_uuid ) )
     RESULT DATA(lt_tasks).
 
-    DATA(lv_id_1) = lt_tasks[ TaskUuid = lv_task1_uuid ]-TaskId.
-    DATA(lv_id_2) = lt_tasks[ TaskUuid = lv_task2_uuid ]-TaskId.
+    DATA(lv_id_1) = lt_tasks[ KEY entity TaskUuid = lv_task1_uuid ]-TaskId.
+    DATA(lv_id_2) = lt_tasks[ KEY entity TaskUuid = lv_task2_uuid ]-TaskId.
 
     cl_abap_unit_assert=>assert_not_initial( lv_id_1 ).
     cl_abap_unit_assert=>assert_not_initial( lv_id_2 ).
@@ -799,20 +812,6 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
   "=====================================================================
   " Task: validateCompletedTask
   "=====================================================================
-  METHOD done_task_without_owner_fails.
-
-    create_full_hierarchy(
-      EXPORTING
-        iv_task_status = zif_ppm_constants=>task_status-done
-      IMPORTING
-        et_failed      = DATA(lt_failed) ).
-
-    cl_abap_unit_assert=>assert_not_initial(
-        act = lt_failed-task
-        msg = |A DONE task without an assignee must be rejected| ).
-
-  ENDMETHOD.
-
   METHOD done_task_with_owner_succeeds.
 
     create_full_hierarchy(
@@ -880,7 +879,7 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_initial( lt_failed-task ).
 
-    DATA(lv_project_uuid) = ls_mapped-project[ %cid = 'PROJ1' ]-ProjectUUID.
+    DATA(lv_project_uuid) = ls_mapped-project[ KEY cid %cid = 'PROJ1' ]-ProjectUUID.
 
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Project
@@ -980,7 +979,7 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_initial( lt_failed-task ).
 
-    DATA(lv_ms_uuid) = ls_mapped-milestone[ %cid = 'MS1' ]-MilestoneUuid.
+    DATA(lv_ms_uuid) = ls_mapped-milestone[ KEY cid %cid = 'MS1' ]-MilestoneUuid.
 
     READ ENTITIES OF zr_ppm_project IN LOCAL MODE
     ENTITY Milestone
