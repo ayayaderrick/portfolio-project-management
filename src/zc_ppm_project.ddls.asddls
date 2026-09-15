@@ -42,6 +42,9 @@ define root view entity ZC_PPM_PROJECT
 
       CompletionPercentage,
 
+      _TaskAggregate.ProjectTaskCount          as TotalTasks,
+      _TaskAggregate.ProjectCompletedTaskCount as CompletedTasks,
+
       @Semantics: {
         user.createdBy: true
       }
