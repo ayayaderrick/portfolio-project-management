@@ -12,51 +12,78 @@
   visualizations: [{type: #AS_LINEITEM}]
 }]
 
+@UI.chart: [
+  {
+    qualifier: 'radialChart',
+    title: 'Project Completion Rate',
+    description: 'Completed tasks in relation to total number of tasks',
+    chartType: #DONUT,
+    measures: ['CompletedTasks'],
+    measureAttributes: [
+      {
+        measure: 'CompletedTasks',
+        role: #AXIS_1,
+        asDataPoint: true
+      }
+    ]
+  }
+]
+
 annotate view ZC_PPM_PROJECT with
 {
   @UI.facet: [
-  {
-    id: 'Project',
-    purpose: #STANDARD,
-    type: #COLLECTION,
-    label: 'Project Details',
-    position: 10
-  },
-  {
-    label: 'General Information',
-    id: 'General',
-    parentId: 'Project',
-    purpose: #STANDARD,
-    position: 20 ,
-    type: #FIELDGROUP_REFERENCE,
-    targetQualifier : 'General'
-  },
-  {
-    label: 'Schedule',
-    id: 'Schedule',
-    parentId: 'Project',
-    purpose: #STANDARD,
-    position: 30 ,
-    type: #FIELDGROUP_REFERENCE,
-    targetQualifier : 'Schedule'
-  },
-  {
-    label: 'Progress',
-    id: 'Progress',
-    parentId: 'Project',
-    purpose: #STANDARD,
-    position: 40 ,
-    type: #FIELDGROUP_REFERENCE,
-    targetQualifier : 'Progress'
-  },
-  {
-    label: 'Milestones',
-    id: 'Milestones',
-    purpose: #STANDARD,
-    position: 50 ,
-    type: #LINEITEM_REFERENCE,
-    targetElement: '_Milestone'
-  }
+      {
+        id: 'Project',
+        purpose: #STANDARD,
+        type: #COLLECTION,
+        label: 'Project Details',
+        position: 10
+      },
+      {
+        label: 'General Information',
+        id: 'General',
+        parentId: 'Project',
+        purpose: #STANDARD,
+        position: 20 ,
+        type: #FIELDGROUP_REFERENCE,
+        targetQualifier : 'General'
+      },
+      {
+        label: 'Schedule',
+        id: 'Schedule',
+        parentId: 'Project',
+        purpose: #STANDARD,
+        position: 30 ,
+        type: #FIELDGROUP_REFERENCE,
+        targetQualifier : 'Schedule'
+      },
+      {
+        label: 'Progress',
+        id: 'Progress',
+        parentId: 'Project',
+        purpose: #STANDARD,
+        position: 40 ,
+        type: #FIELDGROUP_REFERENCE,
+        targetQualifier : 'Progress'
+      },
+      {
+        label: 'Milestones',
+        id: 'Milestones',
+        purpose: #STANDARD,
+        position: 50 ,
+        type: #LINEITEM_REFERENCE,
+        targetElement: '_Milestone'
+      },
+      {
+        purpose: #HEADER,
+        type: #COLLECTION,
+        id: 'CollectionFacet'
+      },
+      {
+        parentId   : 'CollectionFacet',
+        type       : #CHART_REFERENCE,
+        targetQualifier: 'radialChart'
+      }
    ]
 
   @UI.identification: [
@@ -107,5 +134,21 @@ annotate view ZC_PPM_PROJECT with
   @UI.lineItem: [ { position: 60 } ]
   @UI.fieldGroup: [{ qualifier: 'Progress', position: 10 }]
   CompletionPercentage;
+
+  @UI: {
+    dataPoint: {
+      qualifier: 'CompletedTasks',
+      targetValueElement: 'TotalTasks'
+    }
+  //    lineItem: [
+  //      {
+  //        type: #AS_CHART,
+  //        label: 'Project Completion Rate',
+  //        valueQualifier: 'radialChart',
+  //        position: 70
+  //      }
+  //    ]
+  }
+  CompletedTasks;
 
 }
