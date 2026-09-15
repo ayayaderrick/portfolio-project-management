@@ -2,10 +2,14 @@
 @Metadata.allowExtensions: true
 @ObjectModel.sapObjectNodeType.name: 'ZPPM_PROJECT_A'
 @EndUserText.label: '###GENERATED Core Data Service Entity'
+
 define root view entity ZR_PPM_PROJECT
   as select from zppm_project_a as Project
+
   composition [0..*] of ZR_PPM_MILESTONE     as _Milestone
-  association [0..1] to ZI_PPM_TASKAGGREGATE as _TaskAggregate on $projection.ProjectUUID = _TaskAggregate.ProjectUUID
+  association [0..1] to ZI_PPM_TASKAGGREGATE as _TaskAggregate on  $projection.ProjectUUID = _TaskAggregate.ProjectUUID
+  association [0..1] to ZI_PPM_CODELIST      as _Status        on  $projection.Status = _Status.Code
+                                                               and _Status.CodeType   = 'PROJECT_STATUS'
 {
   key project_uuid          as ProjectUUID,
       project_id            as ProjectID,
@@ -13,8 +17,11 @@ define root view entity ZR_PPM_PROJECT
       description           as Description,
       start_date            as StartDate,
       end_date              as EndDate,
+
+      @ObjectModel.text.association: '_Status'
       status                as Status,
       completion_percentage as CompletionPercentage,
+
       @Semantics.user.createdBy: true
       created_by            as CreatedBy,
       @Semantics.systemDateTime.createdAt: true
@@ -27,5 +34,6 @@ define root view entity ZR_PPM_PROJECT
       last_changed_at       as LastChangedAt,
 
       _Milestone,
+      _Status,
       _TaskAggregate
 }

@@ -8,10 +8,12 @@ define view entity ZI_PPM_CODELIST
 {
   key codelist_uuid         as CodelistUuid,
       code_type             as CodeType,
+
       @ObjectModel.text.association: '_Text'
       code                  as Code,
       active                as Active,
       sort_order            as SortOrder,
+
       @Semantics.user.createdBy: true
       created_by            as CreatedBy,
       @Semantics.systemDateTime.createdAt: true
