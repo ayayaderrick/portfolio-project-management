@@ -131,7 +131,7 @@ annotate view ZC_PPM_PROJECT with
   Status;
 
   //  @UI.identification: [ { position: 70 } ]
-  @UI.lineItem: [ { position: 60 } ]
+  @UI.lineItem: [ { position: 60, type: #AS_CHART, label: 'Completion Percentage', valueQualifier: 'radialChart' } ]
   @UI.fieldGroup: [{ qualifier: 'Progress', position: 10 }]
   CompletionPercentage;
 
