@@ -176,8 +176,6 @@ CLASS ltcl_ppm_project IMPLEMENTATION.
 
     ev_project_uuid = ls_mapped-project[ KEY cid %cid = 'PROJ1' ]-ProjectUUID.
 
-
-
   ENDMETHOD.
 
   METHOD create_project_with_milestone.

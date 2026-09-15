@@ -8,18 +8,22 @@
 }
 @AccessControl.authorizationCheck: #MANDATORY
 @Search.searchable: true
+
 define root view entity ZC_PPM_PROJECT
   provider contract transactional_query
   as projection on ZR_PPM_PROJECT
+
   association [1..1] to ZR_PPM_PROJECT as _BaseEntity on $projection.ProjectUUID = _BaseEntity.ProjectUUID
 {
   key ProjectUUID,
+
       @Search.defaultSearchElement: true
       @Search.fuzzinessThreshold: 0.7
       @Consumption.valueHelpDefinition: [{
         entity: { name: 'ZI_PPM_PROJECT_VH', element: 'ProjectID' }
       }]
       ProjectID,
+
       @Search.defaultSearchElement: true
       @Search.fuzzinessThreshold: 0.7
       @Consumption.valueHelpDefinition: [{
@@ -29,12 +33,18 @@ define root view entity ZC_PPM_PROJECT
       Description,
       StartDate,
       EndDate,
+
       @Consumption.filter.selectionType: #SINGLE
       @Consumption.valueHelpDefinition: [{
         entity: { name: 'ZI_PPM_PROJECTSTATUS_VH', element: 'Code' }
       }]
       Status,
+
       CompletionPercentage,
+
+      _TaskAggregate.ProjectTaskCount          as TotalTasks,
+      _TaskAggregate.ProjectCompletedTaskCount as CompletedTasks,
+
       @Semantics: {
         user.createdBy: true
       }

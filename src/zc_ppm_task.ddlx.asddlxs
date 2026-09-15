@@ -14,34 +14,45 @@ annotate view ZC_PPM_TASK with
 
   @UI.facet: [
     {
+       id: 'Task',
+       purpose: #STANDARD,
+       type: #COLLECTION,
+       label: 'Task Details',
+       position: 10
+    },
+    {
         label: 'General Information',
         id: 'General',
+        parentId: 'Task',
         purpose: #STANDARD,
-        position: 10 ,
+        position: 20 ,
         type: #FIELDGROUP_REFERENCE,
         targetQualifier : 'General'
       },
       {
         label: 'Planning',
         id: 'Planning',
+        parentId: 'Task',
         purpose: #STANDARD,
-        position: 20 ,
+        position: 30 ,
         type: #FIELDGROUP_REFERENCE,
         targetQualifier : 'Planning'
       },
       {
         label: 'Assignment',
         id: 'Assignment',
+        parentId: 'Task',
         purpose: #STANDARD,
-        position: 30 ,
+        position: 40 ,
         type: #FIELDGROUP_REFERENCE,
         targetQualifier : 'Assignment'
       },
       {
         label: 'Status',
         id: 'Status',
+        parentId: 'Task',
         purpose: #STANDARD,
-        position: 40 ,
+        position: 50 ,
         type: #FIELDGROUP_REFERENCE,
         targetQualifier : 'Status'
       }
@@ -52,26 +63,28 @@ annotate view ZC_PPM_TASK with
   { type: #FOR_ACTION, dataAction: 'blockTask', label: 'Block Task' },
   { type: #FOR_ACTION, dataAction: 'unblockTask', label: 'Unblock Task' },
   { type: #FOR_ACTION, dataAction: 'completeTask', label: 'Complete Task' },
-  { type: #FOR_ACTION, dataAction: 'reopenTask', label: 'Reopen Task' },
-  { position: 10 }]
+  { type: #FOR_ACTION, dataAction: 'reopenTask', label: 'Reopen Task' }]
   @UI.identification: [
   { type: #FOR_ACTION, dataAction: 'startTask', label: 'Start Task' },
   { type: #FOR_ACTION, dataAction: 'blockTask', label: 'Block Task' },
   { type: #FOR_ACTION, dataAction: 'unblockTask', label: 'Unblock Task' },
   { type: #FOR_ACTION, dataAction: 'completeTask', label: 'Complete Task' },
-  { type: #FOR_ACTION, dataAction: 'reopenTask', label: 'Reopen Task' },
-  { position: 10 }]
+  { type: #FOR_ACTION, dataAction: 'reopenTask', label: 'Reopen Task' }]
+  TaskUuid;
+
+  @UI.lineItem: [{ position: 10 }]
+  //  @UI.identification: [{ position: 10 }]
   @UI.selectionField: [{ position: 10 }]
   @UI.fieldGroup: [{ qualifier: 'General', position: 10 }]
   TaskId;
 
   @UI.lineItem: [{ position: 20 }]
-  @UI.identification: [{ position: 20 }]
+  //  @UI.identification: [{ position: 20 }]
   @UI.selectionField: [{ position: 20 }]
   @UI.fieldGroup: [{ qualifier: 'General', position: 20 }]
   TaskName;
 
-  @UI.identification: [{ position: 30 }]
+  //  @UI.identification: [{ position: 30 }]
   @UI.fieldGroup: [{ qualifier: 'General', position: 30 }]
   Description;
 
